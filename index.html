@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Torque Lab — Từ điển chuyên ngành ô tô</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0d0f12;--bg2:#13161b;--bg3:#1a1e25;--bg4:#21262f;
+  --border:#2a303a;--border2:#353d4a;
+  --text:#e8ecf0;--muted:#7a8494;--dim:#4a5260;
+  --green:#00d97e;--green2:#00a85f;--green-bg:rgba(0,217,126,0.08);
+  --amber:#f5a623;--amber-bg:rgba(245,166,35,0.08);
+  --blue:#4da6ff;--blue-bg:rgba(77,166,255,0.08);
+  --red:#ff5c5c;
+  --radius:10px;--radius-lg:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Sora',sans-serif;min-height:100vh;line-height:1.6}
+button,input,select{font-family:'Sora',sans-serif}
+
+/* HEADER */
+.header{border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:100;backdrop-filter:blur(10px)}
+.header-inner{max-width:1100px;margin:0 auto;padding:0 20px;height:60px;display:flex;align-items:center;gap:16px}
+.logo{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--green);letter-spacing:-0.5px;white-space:nowrap}
+.logo span{color:var(--muted)}
+.header-stats{display:flex;gap:12px;margin-left:auto;align-items:center}
+.hstat{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace}
+.hstat b{color:var(--text)}
+.prog-wrap{width:100px;height:3px;background:var(--bg4);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--green);border-radius:2px;transition:width .5s}
+
+/* NAV TABS */
+.nav{background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:60px;z-index:99}
+.nav-inner{max-width:1100px;margin:0 auto;padding:0 20px;display:flex;gap:4px;overflow-x:auto}
+.nav-tab{padding:12px 18px;font-size:13px;color:var(--muted);cursor:pointer;border:none;background:transparent;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;font-family:'Sora',sans-serif}
+.nav-tab:hover{color:var(--text)}
+.nav-tab.active{color:var(--green);border-bottom-color:var(--green)}
+
+/* MAIN */
+.main{max-width:1100px;margin:0 auto;padding:24px 20px}
+
+/* SEARCH */
+.search-bar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-wrap input{width:100%;padding:10px 14px 10px 40px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:14px;outline:none;transition:border .2s}
+.search-wrap input::placeholder{color:var(--dim)}
+.search-wrap input:focus{border-color:var(--border2)}
+.search-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--dim);font-size:15px}
+.mode-btns{display:flex;gap:6px}
+.mode-btn{padding:10px 16px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:transparent;color:var(--muted);transition:all .2s;white-space:nowrap}
+.mode-btn:hover{border-color:var(--border2);color:var(--text)}
+.mode-btn.active{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+
+/* CAT CHIPS */
+.cats{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.cat{padding:5px 12px;font-size:11px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;font-family:'DM Mono',monospace}
+.cat:hover{border-color:var(--border2);color:var(--text)}
+.cat.active{background:var(--blue-bg);border-color:var(--blue);color:var(--blue)}
+
+/* WORD GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;cursor:pointer;transition:all .2s;position:relative}
+.card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.card.learned{border-left:3px solid var(--green)}
+.card.starred{border-left:3px solid var(--amber)}
+.card-en{font-size:15px;font-weight:500;color:var(--text);margin-bottom:4px;font-family:'DM Mono',monospace}
+.card-vi{font-size:13px;color:var(--muted);margin-bottom:8px}
+.card-tag{display:inline-block;font-size:10px;padding:2px 8px;border-radius:6px;background:var(--bg4);color:var(--dim);font-family:'DM Mono',monospace;margin-bottom:8px}
+.card-actions{display:flex;gap:6px;opacity:0;transition:opacity .2s}
+.card:hover .card-actions{opacity:1}
+.card-btn{padding:4px 10px;font-size:11px;border:1px solid var(--border2);border-radius:6px;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s}
+.card-btn:hover{background:var(--bg4);color:var(--text)}
+.card-btn.s-active{color:var(--amber);border-color:var(--amber)}
+.card-btn.l-active{color:var(--green);border-color:var(--green)}
+.card-badge{position:absolute;top:10px;right:10px;font-size:10px;padding:2px 7px;border-radius:5px;font-family:'DM Mono',monospace}
+.badge-l{background:var(--green-bg);color:var(--green)}
+.badge-s{background:var(--amber-bg);color:var(--amber)}
+.empty{text-align:center;padding:60px 20px;color:var(--muted);font-size:14px}
+
+/* PAGER */
+.pager{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:24px}
+.pager button{padding:6px 14px;font-size:12px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
+.pager button:hover:not(:disabled){background:var(--bg3);color:var(--text)}
+.pager button:disabled{opacity:0.3;cursor:default}
+.pager span{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* FLASHCARD MODE */
+.flash-wrap{display:flex;flex-direction:column;align-items:center;gap:24px}
+.flash-card{width:100%;max-width:500px;min-height:240px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:40px 32px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .3s;perspective:1000px;position:relative}
+.flash-card:hover{border-color:var(--border2)}
+.flash-front{text-align:center}
+.flash-word{font-size:28px;font-weight:600;font-family:'DM Mono',monospace;color:var(--text);margin-bottom:8px}
+.flash-cat{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;padding:3px 10px;border:1px solid var(--border2);border-radius:6px;display:inline-block}
+.flash-hint{font-size:12px;color:var(--dim);margin-top:20px}
+.flash-back{text-align:center;display:none}
+.flash-vi{font-size:22px;font-weight:500;color:var(--green);margin-bottom:10px}
+.flash-card.revealed .flash-front{display:none}
+.flash-card.revealed .flash-back{display:block}
+.flash-controls{display:flex;gap:10px}
+.flash-btn{padding:10px 24px;font-size:13px;border-radius:10px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .2s}
+.flash-btn:hover{background:var(--bg3);color:var(--text)}
+.flash-btn.know{border-color:var(--green);color:var(--green)}
+.flash-btn.know:hover{background:var(--green-bg)}
+.flash-btn.skip{border-color:var(--red);color:var(--red)}
+.flash-counter{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)}
+
+/* QUIZ MODE */
+.quiz-wrap{max-width:580px;margin:0 auto}
+.quiz-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.quiz-score-disp{font-family:'DM Mono',monospace;font-size:13px;color:var(--muted)}
+.quiz-prog{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;flex:1;margin:0 16px}
+.quiz-prog-fill{height:100%;background:var(--green);transition:width .3s}
+.quiz-q{font-size:22px;font-weight:500;text-align:center;margin-bottom:8px;font-family:'DM Mono',monospace;color:var(--text)}
+.quiz-cat{text-align:center;font-size:11px;color:var(--muted);margin-bottom:28px;font-family:'DM Mono',monospace}
+.quiz-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.qchoice{padding:14px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-size:14px;color:var(--muted);transition:all .2s;text-align:left}
+.qchoice:hover:not(:disabled){background:var(--bg4);border-color:var(--border2);color:var(--text)}
+.qchoice.correct{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.qchoice.wrong{background:rgba(255,92,92,0.08);border-color:var(--red);color:var(--red)}
+.quiz-feedback{text-align:center;font-size:13px;color:var(--muted);min-height:24px;margin-bottom:12px}
+.quiz-next{width:100%;padding:12px;border:1px solid var(--border2);border-radius:10px;cursor:pointer;background:transparent;color:var(--text);font-size:14px;transition:all .2s;display:none}
+.quiz-next:hover{background:var(--bg3)}
+.quiz-result{text-align:center;padding:40px;background:var(--bg2);border:1px solid var(--border);border-radius:20px}
+.quiz-result h2{font-size:32px;font-weight:600;font-family:'DM Mono',monospace;color:var(--green);margin-bottom:8px}
+.quiz-result p{color:var(--muted);margin-bottom:24px}
+.quiz-result button{padding:10px 24px;border:1px solid var(--green);border-radius:10px;cursor:pointer;background:var(--green-bg);color:var(--green);font-size:14px}
+
+@media(max-width:600px){
+  .quiz-choices{grid-template-columns:1fr}
+  .grid{grid-template-columns:1fr}
+  .header-stats{display:none}
+  .flash-word{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <div class="logo">TORQUE<span>_</span>LAB</div>
+    <div style="font-size:12px;color:var(--muted);display:none" id="sub">Từ điển chuyên ngành ô tô · by Torque Lab</div>
+    <div class="header-stats">
+      <div class="hstat">Đã học <b id="hLearn">0</b></div>
+      <div class="hstat">Đã lưu <b id="hStar">0</b></div>
+      <div class="prog-wrap"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+      <div class="hstat" id="progPct">0%</div>
+    </div>
+  </div>
+</header>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <button class="nav-tab active" onclick="setMode('dict')">📖 Từ điển</button>
+    <button class="nav-tab" onclick="setMode('flash')">🃏 Flashcard</button>
+    <button class="nav-tab" onclick="setMode('quiz')">🎯 Quiz</button>
+    <button class="nav-tab" onclick="setMode('star')">⭐ Đã lưu</button>
+  </div>
+</nav>
+
+<main class="main">
+  <!-- DICT / STAR VIEW -->
+  <div id="viewDict">
+    <div class="search-bar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" placeholder="Tìm tiếng Anh hoặc tiếng Việt..." oninput="render()"/>
+      </div>
+    </div>
+    <div class="cats" id="catChips"></div>
+    <div class="grid" id="wordGrid"></div>
+    <div class="pager" id="pager"></div>
+  </div>
+
+  <!-- FLASHCARD VIEW -->
+  <div id="viewFlash" style="display:none">
+    <div class="flash-wrap">
+      <div class="flash-counter" id="flashCounter">Thẻ 1 / 0</div>
+      <div class="flash-card" id="flashCard" onclick="revealFlash()">
+        <div class="flash-front">
+          <div class="flash-word" id="flashWord">—</div>
+          <div class="flash-cat" id="flashCat">—</div>
+          <div class="flash-hint">👆 Click để xem nghĩa</div>
+        </div>
+        <div class="flash-back">
+          <div class="flash-vi" id="flashVi">—</div>
+          <div class="flash-cat" id="flashCat2" style="margin-top:8px">—</div>
+        </div>
+      </div>
+      <div class="flash-controls">
+        <button class="flash-btn skip" onclick="nextFlash(false)">✗ Chưa thuộc</button>
+        <button class="flash-btn know" onclick="nextFlash(true)">✓ Đã thuộc</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <button class="flash-btn" onclick="shuffleFlash()">🔀 Xáo bài</button>
+        <button class="flash-btn" onclick="resetFlash()">↺ Làm lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ VIEW -->
+  <div id="viewQuiz" style="display:none">
+    <div class="quiz-wrap">
+      <div class="quiz-meta">
+        <span class="quiz-score-disp" id="qScoreDisp">0 đúng / 0 câu</span>
+        <div class="quiz-prog"><div class="quiz-prog-fill" id="qProgFill" style="width:0%"></div></div>
+        <button class="flash-btn" onclick="startQuiz()" style="padding:6px 12px;font-size:11px">↺ Làm lại</button>
+      </div>
+      <div id="qArea"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const DB=[
+["Oil Drain Plug","Ốc xả nhớt","Động cơ"],["Pulley","Puli","Động cơ"],["Fan Belt","Dây đai dẫn động","Động cơ"],
+["Water Pump","Bơm nước","Làm mát"],["Fan","Quạt gió","Làm mát"],["Alternator","Máy phát điện xoay chiều","Hệ thống điện"],
+["Distributor","Bộ chia điện","Hệ thống điện"],["Valve Spring","Lò xo xupap","Động cơ"],
+["Radiator Hose","Ống dẫn két nước","Làm mát"],["Air Filter","Bộ lọc khí","Động cơ"],
+["Cylinder Head Cover","Vỏ bọc đầu xylanh","Động cơ"],["Spark Plug","Bugi đánh lửa","Hệ thống điện"],
+["Exhaust Manifold","Ống góp xả","Động cơ"],["Dipstick","Thước thăm dầu","Động cơ"],
+["Flywheel","Bánh đà","Động cơ"],["Engine Block","Khối động cơ (lốc máy)","Động cơ"],
+["Oil Filter","Bộ lọc dầu","Động cơ"],["Valve Cover","Nắp đậy xupap","Động cơ"],
+["Fuel Pressure Regulator","Bộ điều áp nhiên liệu","Nhiên liệu"],["Cylinder Head","Nắp quy lát","Động cơ"],
+["Fuel Rail","Ống dẫn nhiên liệu","Nhiên liệu"],["Intake Manifold","Cổ hút khí","Động cơ"],
+["Intercooler","Két làm mát khí nạp","Làm mát"],["Motor Mount","Cao su chân máy","Động cơ"],
+["Turbocharger","Tua-bin tăng áp","Động cơ"],["Piston","Piston","Động cơ"],["Valve","Xupap","Động cơ"],
+["Throttle Body","Cụm bướm ga","Động cơ"],["Throttle Position Sensor","Cảm biến vị trí bướm ga","Cảm biến"],
+["Mass Air Flow Sensor","Cảm biến lưu lượng khí nạp","Cảm biến"],
+["MAP Sensor","Cảm biến áp suất tuyệt đối đường ống nạp","Cảm biến"],
+["Knock Sensor","Cảm biến kích nổ","Cảm biến"],["Oxygen Sensor","Cảm biến oxy","Cảm biến"],
+["Coolant Temperature Sensor","Cảm biến nhiệt độ nước làm mát","Cảm biến"],
+["Crankshaft Position Sensor","Cảm biến vị trí trục khuỷu","Cảm biến"],
+["Camshaft Position Sensor","Cảm biến vị trí trục cam","Cảm biến"],
+["Vehicle Speed Sensor","Cảm biến tốc độ xe","Cảm biến"],
+["ABS Wheel Speed Sensor","Cảm biến tốc độ bánh xe ABS","Cảm biến"],
+["Steering Angle Sensor","Cảm biến góc lái","Cảm biến"],
+["EGR Valve Position Sensor","Cảm biến vị trí van EGR","Cảm biến"],
+["Rail Pressure Sensor","Cảm biến áp suất common rail","Cảm biến"],
+["G-Sensor","Cảm biến gia tốc (túi khí)","Cảm biến"],
+["Yaw Rate Sensor","Cảm biến độ lệch ngang","Cảm biến"],
+["Torque Sensor","Cảm biến mô-men xoắn EPS","Cảm biến"],
+["Steering System","Hệ thống lái","Hệ thống lái"],
+["Power Steering Pump","Bơm trợ lực lái","Hệ thống lái"],
+["Power Steering Gearbox","Hộp số lái trợ lực","Hệ thống lái"],
+["Steering Knuckle","Ngỗng trục bánh xe","Hệ thống lái"],
+["Outer Tie-Rod End","Rotuyn lái ngoài","Hệ thống lái"],
+["Inner Tie-Rod End","Rotuyn lái trong","Hệ thống lái"],
+["Pitman Arm","Rotuyn chuyển hướng","Hệ thống lái"],
+["Center Link","Thanh dẫn hướng","Hệ thống lái"],
+["Idler Arm","Cần dẫn hướng","Hệ thống lái"],
+["Rack & Pinion Unit","Thước lái","Hệ thống lái"],
+["Ball Joint","Khớp cầu / Rotuyn trụ","Hệ thống lái"],
+["Electronic Power Steering (EPS)","Hệ thống lái trợ lực điện","Hệ thống lái"],
+["Toe-in","Độ chụm bánh xe","Hệ thống lái"],
+["Toe-out","Độ giãn bánh xe","Hệ thống lái"],
+["Wheel Alignment","Chỉnh góc đặt bánh xe","Hệ thống lái"],
+["Turning Radius","Bán kính quay vòng","Hệ thống lái"],
+["Shock Absorber","Bộ giảm chấn","Hệ thống treo"],
+["Coil Spring","Lò xo cuộn","Hệ thống treo"],
+["MacPherson Strut","Giảm sóc MacPherson","Hệ thống treo"],
+["Stabilizer Bar","Thanh cân bằng","Hệ thống treo"],
+["Upper Control Arm","Càng A trên","Hệ thống treo"],
+["Lower Control Arm","Càng A dưới","Hệ thống treo"],
+["Trailing Arm","Càng kéo","Hệ thống treo"],
+["Damper","Bộ giảm chấn","Hệ thống treo"],
+["Double Wishbone","Hệ treo tay đòn kép","Hệ thống treo"],
+["Torsion Beam","Hệ treo trục xoắn","Hệ thống treo"],
+["Wheel Balance","Cân bằng bánh xe","Hệ thống treo"],
+["Anti-Sway Bar","Thanh giằng cân bằng","Hệ thống treo"],
+["Brake Caliper","Càng phanh đĩa","Phanh"],["Brake Disc","Đĩa phanh","Phanh"],
+["Brake Pad","Má phanh đĩa","Phanh"],["Brake Drum","Trống phanh","Phanh"],
+["Brake Shoe","Guốc phanh","Phanh"],["Master Cylinder","Xy lanh phanh chính","Phanh"],
+["Brake Booster","Bầu trợ lực phanh","Phanh"],
+["Brake Fluid Reservoir","Bình chứa dầu phanh","Phanh"],
+["Wheel Cylinder","Xy lanh bánh xe","Phanh"],["Bleed Valve","Ốc xả gió phanh","Phanh"],
+["Parking Brake","Phanh tay","Phanh"],["ABS","Hệ thống chống bó cứng phanh","Phanh"],
+["Hydraulic Control Modulator","Bộ điều biến thủy lực ABS","Phanh"],
+["EBD","Hệ thống phân bổ lực phanh điện tử","Phanh"],
+["Brake Warning Light","Đèn báo phanh","Phanh"],
+["Torque Converter","Bộ biến mô thủy lực","Hộp số"],
+["Input Shaft","Trục sơ cấp hộp số","Hộp số"],["Output Shaft","Trục thứ cấp hộp số","Hộp số"],
+["Clutch Disc","Đĩa ly hợp","Hộp số"],["Pressure Plate","Đĩa ép ly hợp","Hộp số"],
+["Release Fork","Chạc nhả ly hợp","Hộp số"],["Throw-out Bearing","Bạc đạn nhả ly hợp","Hộp số"],
+["Differential","Bộ vi sai","Hộp số"],["Planetary Gear","Bánh răng hành tinh","Hộp số"],
+["CVT","Hộp số vô cấp","Hộp số"],["Primary Pulley","Puli sơ cấp CVT","Hộp số"],
+["Metal Belt","Dây đai kim loại CVT","Hộp số"],["Propeller Shaft","Trục các đăng","Hộp số"],
+["CV Joint","Khớp nối đồng tốc","Hộp số"],["Universal Joint","Khớp cát đăng","Hộp số"],
+["Transfer Case","Hộp số phụ 4WD","Hộp số"],["Limited Slip Differential","Vi sai hạn chế trượt (LSD)","Hộp số"],
+["DSG","Hộp số ly hợp kép 7 cấp","Hộp số"],["Axle Shaft","Bán trục cầu xe","Hộp số"],
+["Lockup Clutch","Khóa biến mô","Hộp số"],["Overdrive","Số tăng tốc","Hộp số"],
+["Reverse Gear","Bánh răng số lùi","Hộp số"],["Crown Wheel","Bánh răng vành chậu","Hộp số"],
+["Catalytic Converter","Bộ chuyển đổi xúc tác","Khí thải"],
+["Muffler","Bộ giảm thanh ống xả","Khí thải"],["EGR Valve","Van hồi lưu khí thải","Khí thải"],
+["Charcoal Canister","Bầu lọc than hoạt tính","Khí thải"],
+["Exhaust Pipe","Ống xả","Khí thải"],["Resonator","Bộ cộng hưởng ống xả","Khí thải"],
+["Warm-up Catalytic Converter","Bộ xúc tác làm nóng","Khí thải"],
+["O2 Sensor (Upstream)","Cảm biến oxy sơ cấp (trước cat)","Khí thải"],
+["High Pressure Fuel Pump","Bơm cao áp","Nhiên liệu"],
+["Common Rail","Ống tích áp nhiên liệu","Nhiên liệu"],
+["Fuel Injector","Kim phun nhiên liệu","Nhiên liệu"],["Fuel Pump","Bơm nhiên liệu","Nhiên liệu"],
+["Fuel Tank","Bình nhiên liệu","Nhiên liệu"],["Fuel Filter","Lọc nhiên liệu","Nhiên liệu"],
+["Carburetor","Bộ chế hòa khí","Nhiên liệu"],["Glow Plug","Bugi xông (động cơ diesel)","Nhiên liệu"],
+["Compressor","Máy nén khí / Lốc lạnh","Điều hòa"],["Condenser","Dàn nóng","Điều hòa"],
+["Evaporator","Dàn lạnh","Điều hòa"],["Expansion Valve","Van tiết lưu","Điều hòa"],
+["Filter Drier","Túi lọc ẩm","Điều hòa"],["Heater Core","Lõi lò sưởi","Điều hòa"],
+["Blower Motor","Motor quạt gió nội thất","Điều hòa"],
+["Refrigerant","Môi chất lạnh gas điều hòa","Điều hòa"],
+["Airbag","Túi khí","An toàn"],["Driver Airbag","Túi khí tài xế","An toàn"],
+["Passenger Airbag","Túi khí ghế phụ","An toàn"],["Curtain Airbag","Túi khí rèm","An toàn"],
+["Seatbelt Pretensioner","Bộ cuốn dây đai an toàn","An toàn"],["SRS Unit","Hộp điều khiển túi khí","An toàn"],
+["ESP","Chương trình ổn định điện tử","An toàn"],["Traction Control (TC)","Điều khiển lực kéo","An toàn"],
+["Immobilizer","Hệ thống chống trộm","An toàn"],["Transponder Chip","Chip truyền tín hiệu chìa khóa","An toàn"],
+["Lane Departure Warning","Cảnh báo lệch làn","An toàn"],
+["Blind Spot Monitor","Cảm biến điểm mù","An toàn"],
+["Battery (HV)","Cụm pin cao áp","Xe điện"],["Battery Pack","Bộ pin xe điện","Xe điện"],
+["Electric Motor","Motor điện kéo","Xe điện"],["DC/DC Converter","Bộ chuyển đổi điện áp DC/DC","Xe điện"],
+["Inverter","Bộ biến tần","Xe điện"],["Fuel Cell","Pin nhiên liệu hydro","Xe điện"],
+["High Voltage Cable","Cáp điện cao áp","Xe điện"],["Battery Charger","Bộ sạc pin","Xe điện"],
+["Regenerative Braking","Phanh tái sinh năng lượng","Xe điện"],
+["Battery Management System (BMS)","Hệ thống quản lý pin","Xe điện"],
+["State of Charge (SOC)","Trạng thái nạp điện","Xe điện"],
+["State of Health (SOH)","Trạng thái sức khỏe pin","Xe điện"],
+["Cell Balancing","Cân bằng cell pin","Xe điện"],
+["Range Extender","Máy phát mở rộng phạm vi","Xe điện"],
+["DOHC","Hai trục cam trên đầu xylanh","Động cơ"],["SOHC","Một trục cam trên đầu xylanh","Động cơ"],
+["OHV","Xupap trên, trục cam dưới","Động cơ"],["Bore","Đường kính xylanh","Động cơ"],
+["Stroke","Hành trình piston","Động cơ"],["Compression Ratio","Tỷ số nén","Động cơ"],
+["Top Dead Center (TDC)","Điểm chết trên","Động cơ"],["Bottom Dead Center (BDC)","Điểm chết dưới","Động cơ"],
+["Torque","Mô-men xoắn (Nm)","Động cơ"],["Horsepower (HP)","Mã lực","Động cơ"],
+["RPM","Vòng quay trên phút","Động cơ"],["Variable Valve Timing (VVT-i)","Van nạp biến thiên thông minh","Động cơ"],
+["Connecting Rod","Thanh truyền","Động cơ"],["Crankshaft","Trục khuỷu","Động cơ"],
+["Camshaft","Trục cam","Động cơ"],["Piston Ring","Xéc măng","Động cơ"],
+["Wrist Pin","Chốt piston","Động cơ"],["Head Gasket","Gioăng nắp máy","Động cơ"],
+["Oil Pan","Các-te dầu","Động cơ"],["Tappet","Con đội xupap","Động cơ"],
+["Rocker Arm","Cò mổ","Động cơ"],["Intake Valve","Xupap nạp","Động cơ"],
+["Exhaust Valve","Xupap xả","Động cơ"],["Camshaft Sprocket","Bánh răng trục cam","Động cơ"],
+["Timing Belt","Dây curoa cam","Động cơ"],["Tensioner","Bộ căng đai/xích cam","Động cơ"],
+["ECU (Engine Control Unit)","Hộp điều khiển động cơ","Hệ thống điện"],
+["CAN Bus","Mạng giao tiếp điện tử CAN","Hệ thống điện"],
+["Ignition Coil","Bobin đánh lửa","Hệ thống điện"],
+["Ignition Switch","Ổ khóa điện","Hệ thống điện"],["Starter Relay","Relay khởi động","Hệ thống điện"],
+["Solenoid Valve","Van điện từ","Hệ thống điện"],["Voltage Regulator","Bộ tiết chế điện áp","Hệ thống điện"],
+["Rectifier","Bộ chỉnh lưu","Hệ thống điện"],["Rotor","Rô to máy phát","Hệ thống điện"],
+["Stator","Stato máy phát","Hệ thống điện"],["Fuse Box","Hộp cầu chì","Hệ thống điện"],
+["Battery (12V)","Ắc quy 12V","Hệ thống điện"],["Drive Belt","Đai dẫn động","Hệ thống điện"],
+["Chassis","Khung xe / Gầm xe","Nội thất"],["Hood","Nắp capo","Nội thất"],
+["Fender","Ốp chắn bùn","Nội thất"],["Bumper","Cản va","Nội thất"],
+["Grille","Ga lăng tản nhiệt","Nội thất"],["Trunk","Cốp sau","Nội thất"],
+["Sunroof","Cửa kính nóc","Nội thất"],["Wiper","Gạt nước kính","Nội thất"],
+["Speedometer","Đồng hồ tốc độ","Nội thất"],["Tachometer","Đồng hồ vòng tua động cơ","Nội thất"],
+["Dashboard","Bảng taplo","Nội thất"],["Steering Wheel","Vô lăng","Nội thất"],
+["Gear Shift","Cần số","Nội thất"],["Headrest","Gối tựa đầu","Nội thất"],
+["Visor","Tấm chống chói","Nội thất"],["Fuel Gauge","Đồng hồ nhiên liệu","Nội thất"],
+["Tire","Lốp xe","Nội thất"],["Rim","Vành bánh xe","Nội thất"],
+["Headlamp","Đèn pha","Nội thất"],["Fog Light","Đèn sương mù","Nội thất"],
+["Daytime Running Light","Đèn ban ngày DRL","Nội thất"],
+["License Plate Light","Đèn biển số","Nội thất"],
+];
+
+const CATS=['Tất cả','Động cơ','Hệ thống điện','Hệ thống lái','Hệ thống treo','Làm mát',
+  'Nhiên liệu','Phanh','Hộp số','Khí thải','Cảm biến','An toàn','Điều hòa','Xe điện','Nội thất'];
+
+const words=DB.map(r=>({en:r[0],vi:r[1],cat:r[2]}));
+let mode='dict',cat='Tất cả',learned=new Set(),starred=new Set(),page=0;
+const PER=24;
+
+// FLASHCARD
+let flashDeck=[],flashIdx=0,flashKnow=0;
+function initFlash(){
+  const pool=getPool();
+  flashDeck=[...pool].sort(()=>Math.random()-.5);
+  flashIdx=0;flashKnow=0;
+  showFlash();
+}
+function getPool(){
+  return words.filter(w=>cat==='Tất cả'||w.cat===cat);
+}
+function showFlash(){
+  if(!flashDeck.length){document.getElementById('flashCard').innerHTML='<div class="flash-front"><div class="flash-word" style="font-size:16px;color:var(--muted)">Không có từ nào trong danh mục này.</div></div>';return;}
+  const w=flashDeck[flashIdx%flashDeck.length];
+  document.getElementById('flashCard').classList.remove('revealed');
+  document.getElementById('flashWord').textContent=w.en;
+  document.getElementById('flashCat').textContent=w.cat;
+  document.getElementById('flashVi').textContent=w.vi;
+  document.getElementById('flashCat2').textContent=w.cat;
+  document.getElementById('flashCounter').textContent=`Thẻ ${flashIdx+1} / ${flashDeck.length}  •  Đã thuộc: ${flashKnow}`;
+}
+function revealFlash(){document.getElementById('flashCard').classList.add('revealed');}
+function nextFlash(know){
+  if(know){flashKnow++;learned.add(flashDeck[flashIdx%flashDeck.length].en);}
+  flashIdx++;
+  if(flashIdx>=flashDeck.length){
+    document.getElementById('flashCard').innerHTML=`<div class="flash-front"><div class="flash-word" style="font-size:18px">🎉 Xong rồi!</div><div class="flash-cat" style="margin-top:12px">Thuộc ${flashKnow}/${flashDeck.length} từ</div></div>`;
+    document.getElementById('flashCounter').textContent='Hoàn thành bộ thẻ!';
+    updateStats();return;
+  }
+  showFlash();updateStats();
+}
+function shuffleFlash(){flashDeck.sort(()=>Math.random()-.5);flashIdx=0;flashKnow=0;showFlash();}
+function resetFlash(){initFlash();}
+
+// QUIZ
+let qRight=0,qTotal=0,qWord=null,qAnswered=false;
+function startQuiz(){qRight=0;qTotal=0;renderQuiz();}
+function renderQuiz(){
+  const pool=getPool();
+  if(pool.length<4){document.getElementById('qArea').innerHTML='<div class="empty">Cần ít nhất 4 từ trong danh mục.</div>';return;}
+  qWord=pool[Math.floor(Math.random()*pool.length)];
+  qAnswered=false;
+  const wrong=pool.filter(w=>w.en!==qWord.en).sort(()=>Math.random()-.5).slice(0,3);
+  const choices=[...wrong,qWord].sort(()=>Math.random()-.5);
+  document.getElementById('qScoreDisp').textContent=`${qRight} đúng / ${qTotal} câu`;
+  document.getElementById('qProgFill').style.width=qTotal?Math.round(qRight/qTotal*100)+'%':'0%';
+  document.getElementById('qArea').innerHTML=`
+    <div class="quiz-q">${qWord.en}</div>
+    <div class="quiz-cat">${qWord.cat}</div>
+    <div class="quiz-choices">${choices.map(c=>`<button class="qchoice" onclick="checkQ(this,'${c.en}','${qWord.en}')">${c.vi}</button>`).join('')}</div>
+    <div class="quiz-feedback" id="qFb"></div>
+    <button class="quiz-next" id="qNext" onclick="renderQuiz()">Câu tiếp →</button>`;
+}
+function checkQ(btn,chosen,correct){
+  if(qAnswered)return;qAnswered=true;qTotal++;
+  document.querySelectorAll('.qchoice').forEach(b=>b.disabled=true);
+  if(chosen===correct){btn.classList.add('correct');document.getElementById('qFb').textContent='✓ Chính xác!';learned.add(correct);qRight++;}
+  else{btn.classList.add('wrong');document.querySelectorAll('.qchoice').forEach(b=>{if(b.textContent===qWord.vi)b.classList.add('correct');});document.getElementById('qFb').innerHTML=`✗ Sai. Đáp án: <b style="color:var(--green)">${qWord.vi}</b>`;}
+  document.getElementById('qNext').style.display='block';
+  document.getElementById('qScoreDisp').textContent=`${qRight} đúng / ${qTotal} câu`;
+  document.getElementById('qProgFill').style.width=Math.round(qRight/qTotal*100)+'%';
+  updateStats();
+}
+
+// DICT
+function getFiltered(){
+  const q=document.getElementById('searchInput')?.value.trim().toLowerCase()||'';
+  return words.filter(w=>{
+    if(mode==='star'&&!starred.has(w.en))return false;
+    if(cat!=='Tất cả'&&w.cat!==cat)return false;
+    if(!q)return true;
+    return w.en.toLowerCase().includes(q)||w.vi.toLowerCase().includes(q);
+  });
+}
+function render(){
+  const filt=getFiltered();
+  const pages=Math.max(1,Math.ceil(filt.length/PER));
+  if(page>=pages)page=pages-1;
+  const slice=filt.slice(page*PER,(page+1)*PER);
+  const grid=document.getElementById('wordGrid');
+  if(!slice.length){grid.innerHTML='<div class="empty">Không tìm thấy từ nào.</div>';document.getElementById('pager').innerHTML='';return;}
+  grid.innerHTML=slice.map(w=>{
+    const iL=learned.has(w.en),iS=starred.has(w.en);
+    return`<div class="card${iL?' learned':iS?' starred':''}">
+      ${iL?'<span class="card-badge badge-l">✓ Thuộc</span>':iS?'<span class="card-badge badge-s">★ Lưu</span>':''}
+      <div class="card-en">${w.en}</div>
+      <div class="card-vi">${w.vi}</div>
+      <span class="card-tag">${w.cat}</span>
+      <div class="card-actions">
+        <button class="card-btn${iS?' s-active':''}" onclick="toggleStar('${w.en}')">${iS?'★ Saved':'☆ Save'}</button>
+        <button class="card-btn${iL?' l-active':''}" onclick="toggleLearn('${w.en}')">${iL?'✓ Thuộc':'Đánh dấu'}</button>
+      </div>
+    </div>`;
+  }).join('');
+  let pgr='';
+  if(pages>1){pgr=`<button onclick="goP(${page-1})" ${page===0?'disabled':''}>← Trước</button><span>Trang ${page+1}/${pages} · ${filt.length} từ</span><button onclick="goP(${page+1})" ${page===pages-1?'disabled':''}>Tiếp →</button>`;}
+  else{pgr=`<span>${filt.length} từ</span>`;}
+  document.getElementById('pager').innerHTML=pgr;
+}
+function goP(p){page=p;render();}
+function toggleStar(en){if(starred.has(en))starred.delete(en);else starred.add(en);render();updateStats();}
+function toggleLearn(en){if(learned.has(en))learned.delete(en);else learned.add(en);render();updateStats();}
+function renderCats(){
+  document.getElementById('catChips').innerHTML=CATS.map(c=>`<button class="cat${cat===c?' active':''}" onclick="setCat('${c}')">${c}</button>`).join('');
+}
+function setCat(c){cat=c;page=0;renderCats();if(mode==='flash')initFlash();else if(mode==='quiz')startQuiz();else render();}
+function setMode(m){
+  mode=m;page=0;
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',['dict','flash','quiz','star'].indexOf(m)===i);});
+  document.getElementById('viewDict').style.display=(m==='dict'||m==='star')?'':'none';
+  document.getElementById('viewFlash').style.display=m==='flash'?'':'none';
+  document.getElementById('viewQuiz').style.display=m==='quiz'?'':'none';
+  if(m==='flash')initFlash();else if(m==='quiz')startQuiz();else render();
+}
+function updateStats(){
+  const t=words.length,l=learned.size,s=starred.size,pct=Math.round(l/t*100);
+  document.getElementById('hLearn').textContent=l;
+  document.getElementById('hStar').textContent=s;
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progPct').textContent=pct+'%';
+}
+renderCats();render();updateStats();
+</script>
+</body>
+</html>
