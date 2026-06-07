@@ -134,6 +134,39 @@ button,input,select{font-family:'Sora',sans-serif}
   .header-stats{display:none}
   .flash-word{font-size:22px}
 }
+/* READING MODE */
+.read-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px}
+.read-cat{padding:5px 12px;font-size:11px;border:1px solid var(--border);border-radius:20px;cursor:pointer;background:transparent;color:var(--muted);transition:all .15s;font-family:'DM Mono',monospace}
+.read-cat:hover{border-color:var(--border2);color:var(--text)}
+.read-cat.active{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.article{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;margin-bottom:16px}
+.article-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.article-tag{font-size:10px;padding:3px 10px;border-radius:6px;background:var(--blue-bg);color:var(--blue);font-family:'DM Mono',monospace;white-space:nowrap;margin-top:3px}
+.article-level{font-size:10px;padding:3px 10px;border-radius:6px;font-family:'DM Mono',monospace;white-space:nowrap;margin-top:3px}
+.level-b{background:var(--green-bg);color:var(--green)}
+.level-i{background:var(--amber-bg);color:var(--amber)}
+.article-title{font-size:17px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace;flex:1}
+.article-en{font-size:14px;line-height:1.9;color:var(--text);margin-bottom:16px}
+.article-en .hl{color:var(--green);font-weight:500;cursor:pointer;border-bottom:1px dashed var(--green2);transition:background .15s}
+.article-en .hl:hover{background:var(--green-bg);border-radius:3px;padding:0 2px}
+.article-vi{font-size:13px;line-height:1.8;color:var(--muted);background:var(--bg3);border-radius:var(--radius);padding:14px 16px;border-left:3px solid var(--border2);display:none}
+.article-vi.show{display:block}
+.article-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.art-btn{padding:7px 16px;font-size:12px;border:1px solid var(--border2);border-radius:8px;cursor:pointer;background:transparent;color:var(--muted);transition:all .2s}
+.art-btn:hover{background:var(--bg3);color:var(--text)}
+.art-btn.active{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+/* QUIZ per article */
+.art-quiz{margin-top:16px;display:none}
+.art-quiz.show{display:block}
+.art-quiz-title{font-size:12px;color:var(--muted);margin-bottom:10px;font-family:'DM Mono',monospace}
+.aq-item{margin-bottom:14px}
+.aq-q{font-size:13px;color:var(--text);margin-bottom:8px;font-weight:500}
+.aq-opts{display:flex;flex-direction:column;gap:5px}
+.aq-opt{padding:8px 12px;font-size:13px;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:transparent;color:var(--muted);text-align:left;transition:all .15s}
+.aq-opt:hover:not(:disabled){background:var(--bg3);color:var(--text)}
+.aq-opt.correct{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+.aq-opt.wrong{background:rgba(255,92,92,0.08);border-color:var(--red);color:var(--red)}
+.tooltip{position:fixed;background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--text);z-index:999;pointer-events:none;max-width:220px;display:none;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 </style>
 </head>
 <body>
@@ -156,6 +189,7 @@ button,input,select{font-family:'Sora',sans-serif}
     <button class="nav-tab active" onclick="setMode('dict')">📖 Từ điển</button>
     <button class="nav-tab" onclick="setMode('flash')">🃏 Flashcard</button>
     <button class="nav-tab" onclick="setMode('quiz')">🎯 Quiz</button>
+    <button class="nav-tab" onclick="setMode('read')">📚 Bài đọc</button>
     <button class="nav-tab" onclick="setMode('star')">⭐ Đã lưu</button>
   </div>
 </nav>
@@ -210,6 +244,10 @@ button,input,select{font-family:'Sora',sans-serif}
       </div>
       <div id="qArea"></div>
     </div>
+  </div>
+  <!-- READING VIEW -->
+  <div id="viewRead" style="display:none">
+    <div id="readList"></div>
   </div>
 </main>
 
@@ -476,11 +514,12 @@ function renderCats(){
 function setCat(c){cat=c;page=0;renderCats();if(mode==='flash')initFlash();else if(mode==='quiz')startQuiz();else render();}
 function setMode(m){
   mode=m;page=0;
-  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',['dict','flash','quiz','star'].indexOf(m)===i);});
+  document.querySelectorAll('.nav-tab').forEach((t,i)=>{t.classList.toggle('active',['dict','flash','quiz','read','star'].indexOf(m)===i);});
   document.getElementById('viewDict').style.display=(m==='dict'||m==='star')?'':'none';
   document.getElementById('viewFlash').style.display=m==='flash'?'':'none';
   document.getElementById('viewQuiz').style.display=m==='quiz'?'':'none';
-  if(m==='flash')initFlash();else if(m==='quiz')startQuiz();else render();
+  document.getElementById('viewRead').style.display=m==='read'?'':'none';
+  if(m==='flash')initFlash();else if(m==='quiz')startQuiz();else if(m==='read')renderRead();else render();
 }
 function updateStats(){
   const t=words.length,l=learned.size,s=starred.size,pct=Math.round(l/t*100);
@@ -490,6 +529,315 @@ function updateStats(){
   document.getElementById('progPct').textContent=pct+'%';
 }
 renderCats();render();updateStats();
+
+// ========== READING MODULE ==========
+const ARTICLES=[
+{
+  id:1,cat:'Động cơ',level:'B',
+  title:'How a 4-Stroke Engine Works',
+  en:`The <span class="hl" data-vi="động cơ đốt trong">internal combustion engine</span> is the heart of most vehicles. It operates on a <span class="hl" data-vi="chu kỳ 4 thì">four-stroke cycle</span>: intake, compression, combustion, and exhaust.\n\nDuring the <span class="hl" data-vi="thì nạp">intake stroke</span>, the <span class="hl" data-vi="piston">piston</span> moves downward, drawing a mixture of air and fuel into the <span class="hl" data-vi="xy lanh">cylinder</span> through the open <span class="hl" data-vi="xupap nạp">intake valve</span>.\n\nIn the <span class="hl" data-vi="thì nén">compression stroke</span>, the piston moves back up, compressing the mixture. The <span class="hl" data-vi="tỷ số nén">compression ratio</span> determines how tightly the mixture is squeezed — typically between 8:1 and 12:1 for gasoline engines.\n\nAt the top of the compression stroke, the <span class="hl" data-vi="bugi đánh lửa">spark plug</span> fires, igniting the mixture. The resulting explosion pushes the piston down in the <span class="hl" data-vi="thì nổ (sinh công)">power stroke</span>, which generates <span class="hl" data-vi="mô-men xoắn">torque</span> on the <span class="hl" data-vi="trục khuỷu">crankshaft</span>.\n\nFinally, the <span class="hl" data-vi="thì xả">exhaust stroke</span> pushes burned gases out through the open <span class="hl" data-vi="xupap xả">exhaust valve</span>, completing the cycle.`,
+  vi:`Động cơ đốt trong là trái tim của hầu hết các phương tiện. Nó hoạt động theo chu kỳ 4 thì: nạp, nén, nổ và xả.\n\nTrong thì nạp, piston đi xuống, kéo hỗn hợp không khí và nhiên liệu vào xy lanh qua xupap nạp đang mở.\n\nTrong thì nén, piston đi lên nén hỗn hợp lại. Tỷ số nén quyết định mức độ nén — thường từ 8:1 đến 12:1 với động cơ xăng.\n\nĐỉnh hành trình nén, bugi đánh lửa, đốt cháy hỗn hợp. Vụ nổ đẩy piston xuống trong thì nổ, tạo ra mô-men xoắn trên trục khuỷu.\n\nCuối cùng, thì xả đẩy khí cháy ra ngoài qua xupap xả đang mở, hoàn tất chu kỳ.`,
+  questions:[
+    {q:'What is the correct order of the four strokes?',opts:['Intake → Compression → Power → Exhaust','Compression → Intake → Exhaust → Power','Intake → Power → Compression → Exhaust','Exhaust → Intake → Power → Compression'],ans:0},
+    {q:'What component generates torque on the crankshaft?',opts:['Spark plug','Intake valve','Piston during power stroke','Exhaust valve'],ans:2},
+    {q:'What does "compression ratio" refer to?',opts:['The number of cylinders','How tightly the mixture is compressed','The engine displacement','The fuel-air ratio'],ans:1}
+  ]
+},
+{
+  id:2,cat:'Phanh',level:'B',
+  title:'Disc Brake System — How It Works',
+  en:`The <span class="hl" data-vi="hệ thống phanh đĩa">disc brake system</span> is the most common braking technology in modern vehicles. It provides reliable, consistent stopping power even under repeated heavy use.\n\nWhen the driver presses the <span class="hl" data-vi="bàn đạp phanh">brake pedal</span>, hydraulic pressure builds in the <span class="hl" data-vi="xy lanh chính">master cylinder</span>. This pressure travels through <span class="hl" data-vi="đường dầu phanh">brake lines</span> to the <span class="hl" data-vi="càng phanh đĩa">brake caliper</span> at each wheel.\n\nInside the caliper, a <span class="hl" data-vi="piston">piston</span> pushes the <span class="hl" data-vi="má phanh">brake pads</span> against both sides of the spinning <span class="hl" data-vi="đĩa phanh">brake disc</span> (also called a rotor). The friction created converts kinetic energy into heat, slowing the vehicle.\n\nThe <span class="hl" data-vi="bầu trợ lực phanh">brake booster</span> uses engine vacuum to multiply the force applied by the driver, making braking effortless. Most modern vehicles also include <span class="hl" data-vi="hệ thống chống bó cứng phanh">ABS (Anti-lock Braking System)</span>, which prevents wheel lockup during emergency stops by rapidly pulsing brake pressure.`,
+  vi:`Hệ thống phanh đĩa là công nghệ phanh phổ biến nhất trên xe hiện đại. Nó cung cấp lực phanh ổn định và đáng tin cậy dù sử dụng nhiều lần liên tiếp.\n\nKhi tài xế đạp phanh, áp suất thủy lực tăng trong xy lanh chính. Áp suất này truyền qua đường dầu phanh đến càng phanh đĩa ở mỗi bánh xe.\n\nBên trong càng phanh, piston đẩy má phanh vào hai mặt của đĩa phanh đang quay. Ma sát tạo ra chuyển đổi động năng thành nhiệt, làm chậm xe.\n\nBầu trợ lực phanh dùng chân không động cơ để nhân đôi lực đạp, giúp phanh nhẹ nhàng hơn. Hầu hết xe hiện đại còn có hệ thống ABS, ngăn bánh xe bị bó cứng khi phanh gấp bằng cách nhả-bóp phanh liên tục.`,
+  questions:[
+    {q:'What converts kinetic energy into heat during braking?',opts:['Brake fluid','Friction between brake pads and disc','The master cylinder','ABS system'],ans:1},
+    {q:'What is the role of the brake booster?',opts:['Pump brake fluid','Prevent wheel lockup','Multiply braking force using engine vacuum','Connect brake lines'],ans:2},
+    {q:'ABS prevents wheel lockup by:',opts:['Increasing brake fluid pressure','Rapidly pulsing brake pressure','Cooling the brake disc','Disconnecting the caliper'],ans:1}
+  ]
+},
+{
+  id:3,cat:'Hộp số',level:'I',
+  title:'Automatic Transmission — Torque Converter',
+  en:`The <span class="hl" data-vi="hộp số tự động">automatic transmission</span> allows the vehicle to shift gears without driver input. At its core is the <span class="hl" data-vi="bộ biến mô thủy lực">torque converter</span>, which replaces the manual clutch.\n\nThe torque converter is a fluid coupling device filled with <span class="hl" data-vi="dầu hộp số">transmission fluid</span>. It connects the engine to the transmission using three main components: the <span class="hl" data-vi="cánh bơm (impeller)">impeller</span>, the <span class="hl" data-vi="tua-bin">turbine</span>, and the <span class="hl" data-vi="stato (cánh phản ứng)">stator</span>.\n\nThe impeller is driven by the engine. As it spins, it flings fluid outward toward the turbine, which is connected to the <span class="hl" data-vi="trục sơ cấp hộp số">transmission input shaft</span>. The stator redirects the returning fluid to increase efficiency.\n\nAt higher speeds, a <span class="hl" data-vi="khóa biến mô">lockup clutch</span> mechanically locks the torque converter, creating a direct 1:1 connection between engine and transmission for improved fuel economy.\n\nGear selection is handled by <span class="hl" data-vi="bánh răng hành tinh">planetary gear sets</span> and <span class="hl" data-vi="van điện từ">solenoid valves</span> controlled by the <span class="hl" data-vi="hộp điều khiển hộp số">transmission control unit (TCU)</span>.`,
+  vi:`Hộp số tự động cho phép xe chuyển số mà không cần tài xế thao tác. Trung tâm của nó là bộ biến mô thủy lực, thay thế cho ly hợp cơ khí.\n\nBộ biến mô là thiết bị khớp nối thủy lực chứa đầy dầu hộp số. Nó kết nối động cơ với hộp số qua 3 bộ phận chính: cánh bơm (impeller), tua-bin và stato.\n\nImpeller được dẫn động bởi động cơ. Khi quay, nó văng dầu ra phía ngoài về phía tua-bin, tua-bin kết nối với trục sơ cấp hộp số. Stato chuyển hướng dầu hồi để tăng hiệu suất.\n\nỞ tốc độ cao, khóa biến mô sẽ khóa cứng bộ biến mô, tạo kết nối trực tiếp 1:1 giữa động cơ và hộp số để tiết kiệm nhiên liệu hơn.\n\nViệc chọn số được thực hiện bởi các cụm bánh răng hành tinh và van điện từ, điều khiển bởi hộp TCU.`,
+  questions:[
+    {q:'What replaces the manual clutch in an automatic transmission?',opts:['Planetary gear set','Solenoid valve','Torque converter','TCU'],ans:2},
+    {q:'Which component redirects fluid to improve efficiency in a torque converter?',opts:['Impeller','Turbine','Stator','Lockup clutch'],ans:2},
+    {q:'What is the purpose of the lockup clutch?',opts:['Prevent gear slipping','Create direct 1:1 engine-transmission connection','Control solenoid valves','Select planetary gears'],ans:1}
+  ]
+},
+{
+  id:4,cat:'Xe điện',level:'I',
+  title:'Battery Management System (BMS)',
+  en:`The <span class="hl" data-vi="hệ thống quản lý pin">Battery Management System (BMS)</span> is the brain of an electric vehicle's <span class="hl" data-vi="cụm pin">battery pack</span>. It monitors, protects, and optimizes every cell in the pack.\n\nThe BMS continuously measures key parameters: <span class="hl" data-vi="điện áp từng cell">cell voltage</span>, <span class="hl" data-vi="nhiệt độ pin">temperature</span>, and <span class="hl" data-vi="dòng điện">current</span>. Using this data, it calculates the <span class="hl" data-vi="trạng thái nạp điện">State of Charge (SOC)</span> — how much energy remains — and the <span class="hl" data-vi="trạng thái sức khỏe pin">State of Health (SOH)</span> — the battery's degradation level.\n\nProtection functions include <span class="hl" data-vi="bảo vệ quá áp">overvoltage protection</span>, <span class="hl" data-vi="bảo vệ thiếu áp">undervoltage protection</span>, <span class="hl" data-vi="bảo vệ quá dòng">overcurrent protection</span>, and <span class="hl" data-vi="bảo vệ quá nhiệt">overtemperature protection</span>. If any parameter exceeds safe limits, the BMS disconnects the battery from the circuit.\n\n<span class="hl" data-vi="cân bằng cell pin">Cell balancing</span> is another critical function. Over time, individual cells develop different charge levels. The BMS uses either passive balancing (dissipating excess energy as heat) or active balancing (transferring energy between cells) to keep all cells equal.\n\nThe BMS communicates with other vehicle systems through the <span class="hl" data-vi="giao thức CAN">CAN bus</span> protocol.`,
+  vi:`Hệ thống quản lý pin (BMS) là bộ não của cụm pin xe điện. Nó giám sát, bảo vệ và tối ưu hóa từng cell trong bộ pin.\n\nBMS liên tục đo các thông số quan trọng: điện áp từng cell, nhiệt độ và dòng điện. Từ dữ liệu này, nó tính toán SOC (trạng thái nạp điện) — mức năng lượng còn lại — và SOH (trạng thái sức khỏe pin) — mức độ suy giảm của pin.\n\nCác chức năng bảo vệ bao gồm: bảo vệ quá áp, thiếu áp, quá dòng và quá nhiệt. Nếu bất kỳ thông số nào vượt ngưỡng an toàn, BMS ngắt pin khỏi mạch điện.\n\nCân bằng cell pin là chức năng quan trọng khác. Theo thời gian, các cell riêng lẻ phát triển mức nạp khác nhau. BMS dùng cân bằng thụ động (tiêu tán năng lượng thừa thành nhiệt) hoặc cân bằng chủ động (chuyển năng lượng giữa các cell) để cân bằng tất cả cell.\n\nBMS giao tiếp với các hệ thống khác của xe qua giao thức CAN bus.`,
+  questions:[
+    {q:'What does SOC stand for and measure?',opts:['State of Current — amperage','State of Charge — remaining energy','State of Capacity — total volume','State of Condition — temperature'],ans:1},
+    {q:'Which BMS function prevents cells from having unequal charge levels?',opts:['Overcurrent protection','Temperature monitoring','Cell balancing','CAN bus communication'],ans:2},
+    {q:'How does the BMS communicate with other vehicle systems?',opts:['Wi-Fi protocol','I2C bus','CAN bus','Bluetooth'],ans:2}
+  ]
+},
+{
+  id:5,cat:'Hệ thống lái',level:'B',
+  title:'Power Steering — EPS vs Hydraulic',
+  en:`<span class="hl" data-vi="hệ thống trợ lực lái">Power steering</span> reduces the effort required to turn the <span class="hl" data-vi="vô lăng">steering wheel</span>. There are two main types: hydraulic and electric.\n\n<span class="hl" data-vi="trợ lực lái thủy lực">Hydraulic power steering (HPS)</span> uses a <span class="hl" data-vi="bơm trợ lực lái">hydraulic pump</span> driven by the engine via a <span class="hl" data-vi="dây đai dẫn động">drive belt</span>. The pump pressurizes fluid that assists the <span class="hl" data-vi="thước lái">rack and pinion</span> or <span class="hl" data-vi="hộp số lái trợ lực">steering gearbox</span>. While effective, it consumes engine power constantly — even when driving straight.\n\n<span class="hl" data-vi="hệ thống lái trợ lực điện">Electric Power Steering (EPS)</span> replaces the hydraulic pump with an <span class="hl" data-vi="motor điện trợ lực">electric motor</span>. A <span class="hl" data-vi="cảm biến mô-men xoắn">torque sensor</span> detects how hard the driver is turning, and the motor provides exactly the right amount of assistance. EPS only consumes power when steering input is detected, improving fuel efficiency by up to 5%.\n\nModern EPS systems also enable <span class="hl" data-vi="hỗ trợ giữ làn">lane keeping assist</span> and <span class="hl" data-vi="tự động đỗ xe">automated parking</span> features by precisely controlling the steering motor through the <span class="hl" data-vi="hộp điều khiển">ECU</span>.`,
+  vi:`Trợ lực lái giảm lực cần thiết để quay vô lăng. Có hai loại chính: thủy lực và điện.\n\nTrợ lực lái thủy lực (HPS) dùng bơm thủy lực được dẫn động bởi động cơ qua dây đai. Bơm tạo áp suất dầu để hỗ trợ thước lái hoặc hộp số lái. Tuy hiệu quả nhưng nó tiêu thụ công suất động cơ liên tục — kể cả khi chạy thẳng.\n\nTrợ lực lái điện (EPS) thay thế bơm thủy lực bằng motor điện. Cảm biến mô-men xoắn phát hiện lực quay vô lăng, và motor cung cấp đúng mức trợ lực cần thiết. EPS chỉ tiêu thụ điện khi có đầu vào lái, cải thiện tiết kiệm nhiên liệu lên đến 5%.\n\nCác hệ thống EPS hiện đại còn hỗ trợ giữ làn đường và tự động đỗ xe bằng cách điều khiển chính xác motor lái thông qua ECU.`,
+  questions:[
+    {q:'What is the main disadvantage of hydraulic power steering?',opts:['Too heavy','Consumes engine power constantly','Requires electric motor','Cannot handle sharp turns'],ans:1},
+    {q:'What detects steering input in an EPS system?',opts:['Hydraulic pump','Drive belt','Torque sensor','Rack and pinion'],ans:2},
+    {q:'What additional features does modern EPS enable?',opts:['Turbo boost','ABS activation','Lane keeping assist and automated parking','Fuel injection control'],ans:2}
+  ]
+},
+{
+  id:6,cat:'Hệ thống treo',level:'I',
+  title:'Suspension Systems — MacPherson vs Double Wishbone',
+  en:`The <span class="hl" data-vi="hệ thống treo">suspension system</span> connects the vehicle body to the wheels, absorbing road impacts and maintaining tire contact with the road surface.\n\nThe <span class="hl" data-vi="hệ treo MacPherson">MacPherson strut</span> is the most widely used front suspension design. It combines a <span class="hl" data-vi="bộ giảm chấn">shock absorber</span> and <span class="hl" data-vi="lò xo cuộn">coil spring</span> into a single unit called a strut. The strut connects to the <span class="hl" data-vi="ngỗng trục">steering knuckle</span> at the bottom and a <span class="hl" data-vi="bát bèo (giá đỡ trên)">upper mount</span> on the chassis. It is compact, lightweight, and cost-effective — ideal for front-wheel-drive vehicles.\n\nThe <span class="hl" data-vi="hệ treo tay đòn kép">double wishbone</span> (or double A-arm) suspension uses two <span class="hl" data-vi="càng A">control arms</span> — upper and lower — connected to the knuckle via <span class="hl" data-vi="khớp cầu / rotuyn trụ">ball joints</span>. This design provides superior handling because it better controls wheel camber during cornering. It is commonly found on sports cars, luxury vehicles, and rear suspensions.\n\nThe <span class="hl" data-vi="thanh cân bằng">stabilizer bar</span> (anti-roll bar) connects the left and right suspension, reducing body roll during cornering by transferring load between sides.`,
+  vi:`Hệ thống treo kết nối thân xe với bánh xe, hấp thụ va chạm đường và duy trì tiếp xúc lốp với mặt đường.\n\nGiảm sóc MacPherson là thiết kế treo trước phổ biến nhất. Nó kết hợp bộ giảm chấn và lò xo cuộn thành một cụm gọi là strut. Strut kết nối với ngỗng trục ở dưới và giá đỡ trên trên khung xe. Thiết kế này nhỏ gọn, nhẹ và tiết kiệm chi phí — lý tưởng cho xe cầu trước.\n\nHệ treo tay đòn kép dùng hai càng A — trên và dưới — kết nối với ngỗng trục qua khớp cầu. Thiết kế này cho khả năng vận hành vượt trội vì kiểm soát tốt hơn góc camber khi quay vòng. Thường thấy trên xe thể thao, xe sang và treo sau.\n\nThanh cân bằng kết nối treo trái và phải, giảm nghiêng thân xe khi quay vòng bằng cách phân phối tải giữa hai bên.`,
+  questions:[
+    {q:'What does a MacPherson strut combine into one unit?',opts:['Ball joint and control arm','Shock absorber and coil spring','Stabilizer bar and knuckle','Upper and lower wishbones'],ans:1},
+    {q:'Why does double wishbone provide better handling than MacPherson?',opts:['It is lighter','It uses hydraulic fluid','It better controls wheel camber during cornering','It has more coil springs'],ans:2},
+    {q:'What is the function of the stabilizer bar?',opts:['Connect steering rack to wheels','Absorb road bumps','Reduce body roll during cornering','Mount the engine'],ans:2}
+  ]
+},
+{
+  id:7,cat:'Khí thải',level:'B',
+  title:'Catalytic Converter & Exhaust Emissions',
+  en:`Modern vehicles produce harmful gases during combustion. The <span class="hl" data-vi="hệ thống xử lý khí thải">exhaust emission control system</span> reduces these pollutants before they enter the atmosphere.\n\nThe <span class="hl" data-vi="bộ chuyển đổi xúc tác">catalytic converter</span> is the key component. It contains a honeycomb-shaped ceramic core coated with precious metals — platinum, palladium, and rhodium. As hot exhaust gases pass through, chemical reactions convert three harmful pollutants:\n\n• <span class="hl" data-vi="carbon monoxide (CO)">Carbon monoxide (CO)</span> → Carbon dioxide (CO₂)\n• <span class="hl" data-vi="hydrocacbon chưa cháy">Unburned hydrocarbons (HC)</span> → CO₂ and water\n• <span class="hl" data-vi="oxit nitơ">Nitrogen oxides (NOx)</span> → Nitrogen and oxygen\n\nThe <span class="hl" data-vi="cảm biến oxy">oxygen sensor</span> monitors exhaust gas composition and sends feedback to the <span class="hl" data-vi="hộp điều khiển động cơ">ECU</span> to maintain the ideal <span class="hl" data-vi="tỷ lệ hòa khí lý tưởng">stoichiometric air-fuel ratio</span> of 14.7:1.\n\nThe <span class="hl" data-vi="van hồi lưu khí thải">EGR (Exhaust Gas Recirculation) valve</span> recirculates a portion of exhaust gas back into the intake manifold, lowering combustion temperature and reducing NOx emissions.`,
+  vi:`Xe hiện đại tạo ra khí độc hại trong quá trình đốt cháy. Hệ thống xử lý khí thải giảm thiểu các chất ô nhiễm này trước khi chúng thoát ra khí quyển.\n\nBộ chuyển đổi xúc tác là bộ phận chính. Nó chứa lõi gốm hình tổ ong phủ kim loại quý — platinum, palladium và rhodium. Khi khí thải nóng đi qua, phản ứng hóa học chuyển đổi 3 chất ô nhiễm độc hại:\n\n• Carbon monoxide (CO) → Carbon dioxide (CO₂)\n• Hydrocacbon chưa cháy (HC) → CO₂ và nước\n• Oxit nitơ (NOx) → Nitơ và oxy\n\nCảm biến oxy giám sát thành phần khí thải và phản hồi về ECU để duy trì tỷ lệ hòa khí lý tưởng 14.7:1.\n\nVan EGR tuần hoàn một phần khí thải trở lại ống nạp, giảm nhiệt độ đốt cháy và giảm khí NOx.`,
+  questions:[
+    {q:'What materials coat the catalytic converter core?',opts:['Steel and aluminum','Platinum, palladium, and rhodium','Copper and zinc','Ceramic only'],ans:1},
+    {q:'What is the ideal stoichiometric air-fuel ratio?',opts:['12.5:1','16.0:1','14.7:1','10.0:1'],ans:2},
+    {q:'What does the EGR valve do?',opts:['Filter fuel','Recirculate exhaust gas to reduce NOx','Control intake air flow','Monitor oxygen levels'],ans:1}
+  ]
+},
+{
+  id:8,cat:'Động cơ',level:'I',
+  title:'Variable Valve Timing (VVT-i)',
+  en:`Traditional engines have fixed valve timing — the <span class="hl" data-vi="xupap nạp và xả">intake and exhaust valves</span> open and close at the same points in every cycle, regardless of engine speed. This is a compromise that works adequately at mid-range RPM but is suboptimal at both low and high speeds.\n\n<span class="hl" data-vi="hệ thống van nạp biến thiên thông minh">Variable Valve Timing (VVT-i)</span> solves this by continuously adjusting the timing of the <span class="hl" data-vi="trục cam nạp">intake camshaft</span> relative to the <span class="hl" data-vi="trục khuỷu">crankshaft</span>.\n\nThe system uses an oil-pressure-driven <span class="hl" data-vi="bộ điều chỉnh cam">cam phaser</span> (also called a VVT actuator) mounted on the camshaft sprocket. The <span class="hl" data-vi="hộp điều khiển động cơ">ECU</span> commands a <span class="hl" data-vi="van điều khiển dầu (OCV)">oil control valve (OCV)</span> to advance or retard the camshaft position in response to engine load and RPM.\n\nAt low RPM, retarded timing improves idle stability and reduces emissions. At high RPM, advanced timing maximizes <span class="hl" data-vi="mô-men xoắn">torque</span> and power output. The result is an engine that delivers strong low-end torque AND high-end power — previously a trade-off engineers had to accept.`,
+  vi:`Động cơ truyền thống có thời điểm phối khí cố định — xupap nạp và xả mở đóng tại các điểm giống nhau trong mỗi chu kỳ, bất kể tốc độ động cơ. Đây là sự thỏa hiệp hoạt động tốt ở dải vòng tua trung bình nhưng không tối ưu ở tốc độ thấp và cao.\n\nHệ thống VVT-i giải quyết điều này bằng cách liên tục điều chỉnh thời điểm của trục cam nạp so với trục khuỷu.\n\nHệ thống dùng bộ điều chỉnh cam (cam phaser) dẫn động bằng áp suất dầu, gắn trên bánh răng trục cam. ECU điều khiển van dầu OCV để tiến hoặc lùi vị trí trục cam theo tải và vòng tua động cơ.\n\nỞ vòng tua thấp, thời điểm lùi cải thiện ổn định không tải và giảm khí thải. Ở vòng tua cao, thời điểm tiến tối đa hóa mô-men xoắn và công suất. Kết quả là động cơ vừa có mô-men xoắn mạnh ở thấp tua vừa có công suất cao ở cao tua — điều trước đây kỹ sư phải đánh đổi.`,
+  questions:[
+    {q:'What is the main limitation of traditional fixed valve timing?',opts:['Too expensive','Optimal only at mid-range RPM, not at low or high speeds','Requires too much oil','Cannot work with turbochargers'],ans:1},
+    {q:'What component physically changes the camshaft timing in VVT-i?',opts:['Spark plug','Oil control valve (OCV) and cam phaser','Throttle body','Crankshaft sensor'],ans:1},
+    {q:'At high RPM, VVT-i advances timing to:',opts:['Improve idle stability','Reduce emissions','Maximize torque and power output','Save fuel'],ans:2}
+  ]
+},
+{
+  id:9,cat:'Nhiên liệu',level:'B',
+  title:'Common Rail Diesel Injection System',
+  en:`The <span class="hl" data-vi="hệ thống phun nhiên liệu Common Rail">Common Rail Direct Injection (CRDI)</span> system is the dominant technology in modern diesel engines. Unlike older systems where each injector had its own pump, Common Rail uses a single <span class="hl" data-vi="ống tích áp nhiên liệu">high-pressure rail</span> shared by all injectors.\n\nA <span class="hl" data-vi="bơm cao áp">high-pressure fuel pump</span> compresses diesel to extreme pressures — between 1,000 and 2,500 bar — and stores it in the common rail. The <span class="hl" data-vi="cảm biến áp suất common rail">rail pressure sensor</span> continuously monitors this pressure and feeds data to the <span class="hl" data-vi="hộp điều khiển động cơ">ECU</span>.\n\nEach <span class="hl" data-vi="kim phun nhiên liệu">fuel injector</span> is controlled electronically. The ECU determines the precise injection timing, duration, and pressure for each cylinder based on engine load, speed, and temperature. Most systems perform multiple injections per cycle: a small <span class="hl" data-vi="phun mồi">pilot injection</span> to reduce combustion noise, followed by the main injection, and sometimes a <span class="hl" data-vi="phun sau">post injection</span> for emissions control.\n\nThe advantages over older systems include lower noise, higher fuel efficiency, reduced emissions, and significantly more power from the same engine displacement.`,
+  vi:`Hệ thống phun Common Rail (CRDI) là công nghệ chủ đạo trong động cơ diesel hiện đại. Khác với hệ thống cũ mỗi kim phun có bơm riêng, Common Rail dùng một ống tích áp chung cho tất cả kim phun.\n\nBơm cao áp nén dầu diesel lên áp suất cực cao — từ 1.000 đến 2.500 bar — và lưu trữ trong ống rail. Cảm biến áp suất rail liên tục theo dõi áp suất và phản hồi về ECU.\n\nMỗi kim phun được điều khiển điện tử. ECU xác định chính xác thời điểm, thời gian và áp suất phun cho từng xy lanh dựa trên tải, tốc độ và nhiệt độ động cơ. Hầu hết hệ thống thực hiện nhiều lần phun mỗi chu kỳ: phun mồi nhỏ để giảm tiếng ồn đốt cháy, phun chính, và đôi khi phun sau để kiểm soát khí thải.\n\nƯu điểm so với hệ thống cũ: tiếng ồn thấp hơn, hiệu quả nhiên liệu cao hơn, khí thải ít hơn và công suất lớn hơn từ cùng dung tích.`,
+  questions:[
+    {q:'What pressure range does a Common Rail system operate at?',opts:['100–300 bar','500–800 bar','1,000–2,500 bar','50–100 bar'],ans:2},
+    {q:'What is the purpose of the pilot injection?',opts:['Increase fuel pressure','Reduce combustion noise','Cool the injector','Clean the fuel filter'],ans:1},
+    {q:'What monitors the pressure in the common rail?',opts:['Oxygen sensor','Fuel filter','Rail pressure sensor','Knock sensor'],ans:2}
+  ]
+},
+{
+  id:10,cat:'Hệ thống điện',level:'B',
+  title:'Vehicle Electrical System — Alternator & Battery',
+  en:`Every vehicle relies on a stable electrical system to power everything from the <span class="hl" data-vi="hệ thống đánh lửa">ignition system</span> to infotainment screens. The two main components are the <span class="hl" data-vi="ắc quy">battery</span> and the <span class="hl" data-vi="máy phát điện xoay chiều">alternator</span>.\n\nThe <span class="hl" data-vi="ắc quy 12V">12V battery</span> stores electrical energy and provides the high current needed to crank the <span class="hl" data-vi="motor khởi động">starter motor</span>. A typical car battery delivers 400–600 cold cranking amps (CCA). Once the engine starts, the battery's role reduces to a buffer.\n\nThe <span class="hl" data-vi="máy phát điện">alternator</span> is belt-driven by the engine and generates alternating current (AC), which is then converted to direct current (DC) by an internal <span class="hl" data-vi="bộ chỉnh lưu">rectifier</span>. It outputs 13.5–14.8V to charge the battery and power all electrical loads simultaneously.\n\nThe <span class="hl" data-vi="bộ tiết chế điện áp">voltage regulator</span> keeps the alternator output within safe limits. If the alternator fails, the battery alone powers everything — but only until it discharges, typically within 20–40 minutes of driving.\n\nModern vehicles also use a <span class="hl" data-vi="hộp cầu chì">fuse box</span> and relay centers to protect circuits from overloads and short circuits.`,
+  vi:`Mỗi xe phụ thuộc vào hệ thống điện ổn định để cấp nguồn cho mọi thứ từ hệ thống đánh lửa đến màn hình giải trí. Hai thành phần chính là ắc quy và máy phát điện.\n\nẮc quy 12V lưu trữ điện năng và cung cấp dòng điện cao để khởi động motor khởi động. Ắc quy xe thông thường cung cấp 400–600 ampe khởi động lạnh (CCA). Sau khi động cơ khởi động, vai trò ắc quy giảm xuống chỉ là bộ đệm.\n\nMáy phát điện được dẫn động bằng đai từ động cơ, tạo ra dòng xoay chiều (AC), sau đó chuyển thành dòng một chiều (DC) bằng bộ chỉnh lưu bên trong. Nó xuất 13,5–14,8V để sạc ắc quy và cấp điện cho tất cả tải điện đồng thời.\n\nBộ tiết chế điện áp giữ điện áp đầu ra trong giới hạn an toàn. Nếu máy phát hỏng, ắc quy một mình cấp điện — nhưng chỉ cho đến khi hết, thường trong 20–40 phút lái xe.\n\nXe hiện đại còn dùng hộp cầu chì và relay để bảo vệ mạch điện khỏi quá tải và ngắn mạch.`,
+  questions:[
+    {q:'What converts AC to DC inside the alternator?',opts:['Voltage regulator','Rectifier','Fuse box','Starter motor'],ans:1},
+    {q:'What is the normal output voltage of an alternator?',opts:['9–11V','12.0V exactly','13.5–14.8V','16–18V'],ans:2},
+    {q:'What happens if the alternator fails while driving?',opts:['Engine immediately shuts off','Battery powers everything until discharged','Fuse box takes over','Voltage regulator compensates'],ans:1}
+  ]
+},
+{
+  id:11,cat:'An toàn',level:'B',
+  title:'Airbag System — How It Deploys',
+  en:`The <span class="hl" data-vi="hệ thống túi khí">airbag (SRS) system</span> is one of the most critical passive safety features in modern vehicles. It works together with <span class="hl" data-vi="dây đai an toàn">seatbelts</span> to protect occupants during a collision.\n\nThe system centers around the <span class="hl" data-vi="hộp điều khiển túi khí">SRS (Supplemental Restraint System) control unit</span>. This module continuously reads data from <span class="hl" data-vi="cảm biến va chạm phía trước">front impact sensors</span>, <span class="hl" data-vi="cảm biến va chạm thân xe">side satellite sensors</span>, and the <span class="hl" data-vi="cảm biến gia tốc">G-sensor (accelerometer)</span>.\n\nWhen a collision is detected, the SRS unit calculates the severity and direction of impact within milliseconds. If the threshold is exceeded, it sends an electrical signal to the appropriate <span class="hl" data-vi="bộ kích nổ">inflator</span>. A chemical reaction (typically using sodium azide or similar compounds) rapidly generates nitrogen gas, inflating the <span class="hl" data-vi="túi khí">airbag</span> in just 30–50 milliseconds — faster than the human eye can detect.\n\nModern vehicles contain multiple airbags: <span class="hl" data-vi="túi khí tài xế">driver</span>, <span class="hl" data-vi="túi khí ghế phụ">passenger</span>, <span class="hl" data-vi="túi khí bên">side</span>, and <span class="hl" data-vi="túi khí rèm">curtain airbags</span>. The <span class="hl" data-vi="bộ cuốn dây đai an toàn">seatbelt pretensioner</span> fires simultaneously to tighten the belt and restrain the occupant before the airbag makes contact.`,
+  vi:`Hệ thống túi khí (SRS) là một trong những tính năng an toàn thụ động quan trọng nhất trên xe hiện đại. Nó phối hợp với dây đai an toàn để bảo vệ hành khách khi va chạm.\n\nHệ thống xoay quanh hộp điều khiển SRS. Mô-đun này liên tục đọc dữ liệu từ cảm biến va chạm phía trước, cảm biến va chạm thân xe và cảm biến gia tốc G.\n\nKhi phát hiện va chạm, hộp SRS tính toán mức độ và hướng va chạm trong vài mili giây. Nếu vượt ngưỡng, nó gửi tín hiệu điện đến bộ kích nổ tương ứng. Phản ứng hóa học nhanh chóng tạo ra khí nitơ, bơm phồng túi khí chỉ trong 30–50 mili giây — nhanh hơn mắt người có thể nhìn thấy.\n\nXe hiện đại có nhiều túi khí: túi khí tài xế, ghế phụ, bên hông và túi khí rèm. Bộ cuốn dây đai an toàn kích hoạt đồng thời để siết đai và giữ hành khách trước khi túi khí tiếp xúc.`,
+  questions:[
+    {q:'How fast does an airbag inflate after deployment signal?',opts:['500–1000 ms','100–200 ms','30–50 ms','5–10 ms'],ans:2},
+    {q:'What gas inflates the airbag?',opts:['Oxygen','Carbon dioxide','Hydrogen','Nitrogen'],ans:3},
+    {q:'What does the seatbelt pretensioner do during a collision?',opts:['Cuts the seatbelt','Tightens the belt to restrain the occupant','Inflates a secondary airbag','Triggers the ABS system'],ans:1}
+  ]
+},
+{
+  id:12,cat:'Xe điện',level:'I',
+  title:'Regenerative Braking in Electric Vehicles',
+  en:`One of the most important efficiency features of <span class="hl" data-vi="xe điện">electric vehicles (EVs)</span> is <span class="hl" data-vi="phanh tái sinh năng lượng">regenerative braking</span>. Rather than wasting kinetic energy as heat like conventional brakes, regenerative braking converts it back into electrical energy stored in the <span class="hl" data-vi="cụm pin">battery pack</span>.\n\nWhen the driver lifts off the accelerator or lightly presses the brake, the <span class="hl" data-vi="motor điện kéo">traction motor</span> switches to generator mode. Instead of consuming electricity to spin the wheels, it resists wheel rotation — creating a braking effect — while simultaneously producing electricity.\n\nThe <span class="hl" data-vi="bộ biến tần">inverter</span> manages this transition, converting the AC generated by the motor into DC that can charge the <span class="hl" data-vi="cụm pin cao áp">high-voltage battery</span>. The <span class="hl" data-vi="hệ thống quản lý pin">BMS</span> monitors the battery's <span class="hl" data-vi="trạng thái nạp điện">SOC</span> to ensure it is not overcharged during regeneration.\n\nFor heavy braking, regenerative braking alone is insufficient, so conventional <span class="hl" data-vi="phanh ma sát">friction brakes</span> engage as well. A blended braking system smoothly combines both to maximize energy recovery while maintaining safe stopping distances.\n\nRegenerative braking can recover up to 70% of kinetic energy, significantly extending the vehicle's driving range.`,
+  vi:`Một trong những tính năng hiệu quả quan trọng nhất của xe điện là phanh tái sinh năng lượng. Thay vì lãng phí động năng dưới dạng nhiệt như phanh thông thường, phanh tái sinh chuyển đổi lại thành điện năng lưu trữ trong cụm pin.\n\nKhi tài xế nhả chân ga hoặc đạp phanh nhẹ, motor điện kéo chuyển sang chế độ máy phát. Thay vì tiêu thụ điện để quay bánh, nó cản lại chuyển động của bánh — tạo hiệu ứng phanh — đồng thời tạo ra điện.\n\nBộ biến tần quản lý quá trình chuyển đổi này, chuyển AC do motor tạo ra thành DC để sạc vào pin cao áp. BMS theo dõi SOC của pin để đảm bảo không sạc quá đầy trong quá trình tái sinh.\n\nKhi phanh mạnh, phanh tái sinh một mình không đủ, nên phanh ma sát thông thường cũng can thiệp. Hệ thống phanh kết hợp mượt mà kết hợp cả hai để tối đa hóa thu hồi năng lượng trong khi vẫn đảm bảo quãng đường phanh an toàn.\n\nPhanh tái sinh có thể thu hồi tới 70% động năng, tăng đáng kể quãng đường của xe.`,
+  questions:[
+    {q:'What happens to the traction motor during regenerative braking?',opts:['It shuts off completely','It switches to generator mode','It increases speed','It connects to the ABS system'],ans:1},
+    {q:'What component converts AC from the motor to DC for charging?',opts:['BMS','Traction motor','Inverter','Brake caliper'],ans:2},
+    {q:'How much kinetic energy can regenerative braking recover?',opts:['Up to 10%','Up to 30%','Up to 70%','Up to 95%'],ans:2}
+  ]
+},
+{
+  id:13,cat:'Động cơ',level:'I',
+  title:'Turbocharger — Forced Induction Explained',
+  en:`A <span class="hl" data-vi="tua-bin tăng áp">turbocharger</span> is a device that forces more air into the engine's cylinders than atmospheric pressure alone could deliver — a process called <span class="hl" data-vi="tăng áp nạp">forced induction</span>. More air means more fuel can be burned, producing significantly more power from the same engine size.\n\nThe turbocharger consists of two turbines connected by a shared shaft. The <span class="hl" data-vi="tua-bin khí thải">exhaust turbine</span> is spun by hot exhaust gases leaving the engine. This spinning drives the <span class="hl" data-vi="máy nén khí">compressor turbine</span> on the other end of the shaft, which compresses incoming air before it enters the <span class="hl" data-vi="cổ hút khí">intake manifold</span>.\n\nBecause compression heats the air (hot air is less dense), most turbocharged engines use an <span class="hl" data-vi="két làm mát khí nạp">intercooler</span> to cool the compressed air before it enters the cylinders. Cooler, denser air further improves combustion efficiency.\n\n<span class="hl" data-vi="độ trễ turbo">Turbo lag</span> is the brief delay between pressing the accelerator and feeling boost — it occurs because the exhaust turbine needs time to spin up. Modern solutions include twin-scroll turbos, variable geometry turbines (VGT), and electric turbos to minimize lag.\n\nThe <span class="hl" data-vi="van xả áp turbo (wastegate)">wastegate</span> limits boost pressure by diverting excess exhaust gas around the turbine, protecting the engine from over-boosting.`,
+  vi:`Tua-bin tăng áp là thiết bị ép thêm không khí vào xy lanh động cơ hơn mức áp suất khí quyển có thể cung cấp — gọi là tăng áp nạp. Nhiều không khí hơn đồng nghĩa với đốt nhiều nhiên liệu hơn, tạo ra nhiều công suất hơn từ cùng dung tích.\n\nTua-bin tăng áp gồm hai tua-bin nối với nhau qua trục chung. Tua-bin khí thải được quay bởi khí thải nóng từ động cơ. Vòng quay này dẫn động máy nén ở đầu kia của trục, nén không khí đầu vào trước khi vào cổ hút.\n\nVì nén làm nóng không khí (không khí nóng kém đặc hơn), hầu hết động cơ tăng áp dùng intercooler để làm mát khí nén trước khi vào xy lanh. Không khí mát, đặc hơn cải thiện hiệu quả đốt cháy.\n\nĐộ trễ turbo là khoảng trễ ngắn giữa đạp ga và cảm nhận được boost — xảy ra vì tua-bin khí thải cần thời gian để tăng tốc. Giải pháp hiện đại gồm turbo twin-scroll, tua-bin hình học biến thiên (VGT) và turbo điện để giảm thiểu độ trễ.\n\nWastegate giới hạn áp suất boost bằng cách chuyển hướng khí thải thừa qua tua-bin, bảo vệ động cơ khỏi quá áp.`,
+  questions:[
+    {q:'What drives the exhaust turbine in a turbocharger?',opts:['Electric motor','Engine crankshaft','Hot exhaust gases','Intake air pressure'],ans:2},
+    {q:'Why is an intercooler used with turbocharged engines?',opts:['To increase exhaust temperature','To cool compressed intake air for better density','To reduce oil consumption','To control wastegate pressure'],ans:1},
+    {q:'What is the function of the wastegate?',opts:['Cool the turbo shaft','Increase boost pressure','Limit boost pressure to protect the engine','Connect the intake and exhaust turbines'],ans:2}
+  ]
+},
+{
+  id:14,cat:'Hệ thống treo',level:'B',
+  title:'Wheel Alignment — Camber, Toe & Caster',
+  en:`<span class="hl" data-vi="chỉnh góc đặt bánh xe">Wheel alignment</span> refers to the precise angles at which the tires contact the road. Correct alignment ensures even tire wear, straight-line stability, and predictable handling. There are three primary alignment angles.\n\n<span class="hl" data-vi="góc camber">Camber</span> is the inward or outward tilt of the wheel when viewed from the front. Zero camber means the wheel is perfectly vertical. Slight negative camber (top tilted inward) improves cornering grip because the tire leans into turns. Excessive negative camber causes rapid inner tread wear.\n\n<span class="hl" data-vi="độ chụm / độ giãn">Toe</span> describes whether the fronts of the tires point inward (<span class="hl" data-vi="độ chụm">toe-in</span>) or outward (<span class="hl" data-vi="độ giãn">toe-out</span>) relative to the vehicle's centerline. Toe directly affects straight-line stability and tire wear. Most front-wheel-drive vehicles use slight toe-out to compensate for the pulling effect of the drivetrain.\n\n<span class="hl" data-vi="góc caster">Caster</span> is the forward or backward tilt of the steering axis. Positive caster (tilted backward) provides steering return-to-center and high-speed stability. Negative caster makes steering lighter but reduces stability.\n\nAlignment is measured using laser or optical equipment and adjusted by changing the positions of suspension components such as <span class="hl" data-vi="rotuyn lái">tie rod ends</span> and <span class="hl" data-vi="càng A">control arm</span> adjustment bolts.`,
+  vi:`Chỉnh góc đặt bánh xe là các góc chính xác mà lốp tiếp xúc với mặt đường. Căn chỉnh đúng đảm bảo mòn lốp đều, ổn định đường thẳng và điều khiển dễ đoán. Có ba góc căn chỉnh chính.\n\nCamber là độ nghiêng vào trong hoặc ra ngoài của bánh khi nhìn từ phía trước. Camber bằng 0 nghĩa là bánh hoàn toàn thẳng đứng. Camber âm nhẹ (đỉnh nghiêng vào trong) cải thiện độ bám khi quay vòng vì lốp nghiêng vào cua. Camber âm quá mức gây mòn nhanh mặt trong lốp.\n\nĐộ chụm/giãn mô tả phần trước lốp hướng vào trong (độ chụm) hay ra ngoài (độ giãn) so với đường tâm xe. Độ chụm/giãn ảnh hưởng trực tiếp đến ổn định đường thẳng và mòn lốp. Hầu hết xe cầu trước dùng độ giãn nhẹ để bù cho lực kéo của hệ truyền động.\n\nGóc caster là độ nghiêng trước hoặc sau của trục lái. Caster dương (nghiêng ra sau) giúp vô lăng tự trở về trung tâm và ổn định tốc độ cao. Caster âm làm lái nhẹ hơn nhưng giảm ổn định.\n\nCăn chỉnh được đo bằng thiết bị laser hoặc quang học và điều chỉnh bằng cách thay đổi vị trí các bộ phận treo như đầu rotuyn lái và bu lông điều chỉnh càng A.`,
+  questions:[
+    {q:'What does negative camber mean?',opts:['Wheel tilts outward at the top','Wheel tilts inward at the top','Wheel points outward (toe-out)','Steering axis tilts forward'],ans:1},
+    {q:'What alignment angle affects straight-line stability and tire wear most directly?',opts:['Caster','Camber','Toe','Scrub radius'],ans:2},
+    {q:'What does positive caster provide?',opts:['Better fuel economy','Steering return-to-center and high-speed stability','Increased negative camber','Reduced tire wear'],ans:1}
+  ]
+},
+{
+  id:15,cat:'Hệ thống điện',level:'I',
+  title:'CAN Bus — The Vehicle\'s Communication Network',
+  en:`Modern vehicles contain dozens of <span class="hl" data-vi="hộp điều khiển điện tử">Electronic Control Units (ECUs)</span> — the engine ECU, transmission control unit, ABS module, airbag controller, and many more. These modules must constantly share data with each other. The <span class="hl" data-vi="mạng giao tiếp điện tử CAN">CAN bus (Controller Area Network)</span> is the communication backbone that makes this possible.\n\nDeveloped by Bosch in the 1980s, CAN bus uses just <span class="hl" data-vi="hai dây CAN (CAN-H và CAN-L)">two wires — CAN-High and CAN-Low</span> — to connect all ECUs in a network. Data is transmitted as differential voltage signals, making the system highly resistant to electrical interference.\n\nEach message on the CAN bus contains an identifier (ID) that specifies what type of data it carries — for example, engine RPM, vehicle speed, or throttle position. All modules receive every message, but each only responds to the IDs relevant to its function.\n\nCAN bus operates at speeds from 125 kbps (low-speed CAN for comfort features) up to 1 Mbps (high-speed CAN for powertrain and safety systems). Some modern vehicles now use <span class="hl" data-vi="mạng Ethernet ô tô">automotive Ethernet</span> for bandwidth-intensive applications like camera data and over-the-air updates.\n\n<span class="hl" data-vi="giao diện chẩn đoán OBD-II">OBD-II diagnostic ports</span> connect directly to the CAN bus, allowing technicians to read fault codes and live sensor data from any ECU in the vehicle.`,
+  vi:`Xe hiện đại chứa hàng chục ECU — ECU động cơ, hộp điều khiển hộp số, mô-đun ABS, bộ điều khiển túi khí và nhiều hơn nữa. Các mô-đun này phải liên tục chia sẻ dữ liệu với nhau. CAN bus là mạng xương sống giao tiếp làm cho điều này có thể.\n\nĐược Bosch phát triển vào những năm 1980, CAN bus chỉ dùng hai dây — CAN-High và CAN-Low — để kết nối tất cả ECU trong mạng. Dữ liệu được truyền dưới dạng tín hiệu điện áp vi sai, giúp hệ thống chịu nhiễu điện rất tốt.\n\nMỗi thông điệp trên CAN bus chứa mã định danh (ID) xác định loại dữ liệu — ví dụ vòng tua động cơ, tốc độ xe hoặc vị trí bướm ga. Tất cả mô-đun nhận mọi thông điệp nhưng chỉ phản hồi các ID liên quan đến chức năng của mình.\n\nCAN bus hoạt động ở tốc độ từ 125 kbps (CAN tốc độ thấp cho tính năng tiện nghi) đến 1 Mbps (CAN tốc độ cao cho hệ truyền động và an toàn). Một số xe hiện đại dùng Ethernet ô tô cho ứng dụng băng thông lớn như dữ liệu camera và cập nhật OTA.\n\nCổng chẩn đoán OBD-II kết nối trực tiếp với CAN bus, cho phép kỹ thuật viên đọc mã lỗi và dữ liệu cảm biến trực tiếp từ bất kỳ ECU nào.`,
+  questions:[
+    {q:'How many wires does a CAN bus use?',opts:['One','Two','Four','Eight'],ans:1},
+    {q:'What does the message identifier (ID) on CAN bus specify?',opts:['Which ECU sent the message','The voltage level','The type of data the message carries','The bus speed'],ans:2},
+    {q:'What tool connects to CAN bus to read fault codes?',opts:['Multimeter','Oscilloscope','OBD-II diagnostic port','Relay tester'],ans:2}
+  ]
+},
+{
+  id:16,cat:'Phanh',level:'I',
+  title:'ABS & Electronic Brake-Force Distribution (EBD)',
+  en:`<span class="hl" data-vi="hệ thống chống bó cứng phanh">Anti-lock Braking System (ABS)</span> prevents wheel lockup during emergency braking, allowing the driver to maintain steering control while stopping. Without ABS, locking all four wheels causes the vehicle to slide uncontrollably.\n\nEach wheel has a <span class="hl" data-vi="cảm biến tốc độ bánh xe">wheel speed sensor</span> that sends data to the <span class="hl" data-vi="hộp điều khiển ABS">ABS control module</span>. When a wheel decelerates too rapidly — indicating imminent lockup — the module commands the <span class="hl" data-vi="bộ điều biến thủy lực">hydraulic modulator</span> to rapidly cycle: release pressure → build pressure → hold. This pulsing (10–15 times per second) keeps the wheel rotating at the edge of grip, maximizing braking force while retaining steering ability.\n\n<span class="hl" data-vi="hệ thống phân bổ lực phanh điện tử">Electronic Brake-Force Distribution (EBD)</span> works alongside ABS. Because vehicle weight shifts forward during braking — reducing rear wheel grip — EBD automatically reduces brake pressure to the rear wheels to prevent them from locking before the fronts. This optimizes total braking force for the actual weight distribution at any moment.\n\nTogether, ABS and EBD are the foundation of all modern active safety systems, including <span class="hl" data-vi="hệ thống kiểm soát lực kéo">Traction Control (TC)</span>, <span class="hl" data-vi="chương trình ổn định điện tử">Electronic Stability Control (ESC)</span>, and <span class="hl" data-vi="hệ thống hỗ trợ phanh gấp">Emergency Brake Assist (EBA)</span>.`,
+  vi:`Hệ thống ABS ngăn bánh xe bị bó cứng khi phanh gấp, cho phép tài xế duy trì điều khiển lái trong khi dừng xe. Không có ABS, khóa cứng cả bốn bánh khiến xe trượt mất kiểm soát.\n\nMỗi bánh xe có cảm biến tốc độ gửi dữ liệu về hộp điều khiển ABS. Khi bánh giảm tốc quá nhanh — báo hiệu sắp bó cứng — mô-đun ra lệnh cho bộ điều biến thủy lực chu kỳ nhanh: giảm áp → tăng áp → giữ. Nhịp đập này (10–15 lần/giây) giữ bánh quay ở ngưỡng bám, tối đa hóa lực phanh trong khi vẫn giữ được khả năng lái.\n\nHệ thống EBD hoạt động cùng ABS. Vì trọng tâm xe dịch về phía trước khi phanh — giảm độ bám bánh sau — EBD tự động giảm áp phanh bánh sau để ngăn chúng bó cứng trước bánh trước. Điều này tối ưu hóa tổng lực phanh theo phân bổ trọng lượng thực tế ở mỗi thời điểm.\n\nCùng nhau, ABS và EBD là nền tảng của tất cả hệ thống an toàn chủ động hiện đại, bao gồm kiểm soát lực kéo (TC), ổn định điện tử (ESC) và hỗ trợ phanh khẩn cấp (EBA).`,
+  questions:[
+    {q:'How many times per second does ABS pulse brake pressure?',opts:['2–3 times','5–7 times','10–15 times','20–25 times'],ans:2},
+    {q:'Why does EBD reduce pressure to rear wheels during braking?',opts:['Rear brakes are weaker','Weight shifts forward, reducing rear grip','Rear wheels are smaller','ECU saves energy'],ans:1},
+    {q:'Which system is the foundation for Traction Control and ESC?',opts:['Fuel injection system','Alternator','ABS and EBD','Airbag system'],ans:2}
+  ]
+},
+{
+  id:17,cat:'Hộp số',level:'I',
+  title:'CVT — Continuously Variable Transmission',
+  en:`The <span class="hl" data-vi="hộp số vô cấp">Continuously Variable Transmission (CVT)</span> is a type of automatic transmission that has no fixed gear steps. Instead of discrete gears (1st, 2nd, 3rd…), it provides an infinite range of gear ratios, always keeping the engine in its optimal power band.\n\nThe core of a CVT is a pair of variable-diameter pulleys connected by a <span class="hl" data-vi="dây đai kim loại">metal push belt</span> or chain. The <span class="hl" data-vi="puli sơ cấp">primary (drive) pulley</span> is connected to the engine, while the <span class="hl" data-vi="puli thứ cấp">secondary (driven) pulley</span> connects to the output shaft.\n\nEach pulley consists of two conical halves that can move closer together or farther apart, changing the effective diameter. When the primary pulley opens wider, the belt rides lower (smaller diameter) — a low gear ratio for acceleration. As the primary pulley closes, the belt rises (larger diameter) — a higher ratio for cruising. The secondary pulley does the opposite simultaneously to maintain belt tension.\n\nHydraulic pressure, controlled by the <span class="hl" data-vi="hộp điều khiển hộp số (TCU)">TCU</span>, adjusts the pulley positions continuously based on throttle input and vehicle speed. The result is seamless acceleration without gear shifts, improved fuel economy, and smoother driving experience — though some drivers find the constant-RPM sensation less engaging than traditional stepped gearboxes.`,
+  vi:`Hộp số vô cấp (CVT) là loại hộp số tự động không có cấp số cố định. Thay vì các số riêng biệt (1, 2, 3…), nó cung cấp vô số tỷ số truyền, luôn giữ động cơ trong dải công suất tối ưu.\n\nLõi của CVT là một cặp puli đường kính thay đổi được nối bằng dây đai kim loại hoặc xích. Puli sơ cấp nối với động cơ, puli thứ cấp nối với trục ra.\n\nMỗi puli gồm hai nửa hình nón có thể trượt lại gần hoặc xa nhau, thay đổi đường kính hiệu dụng. Khi puli sơ cấp mở rộng, dây đai nằm thấp hơn (đường kính nhỏ) — tỷ số truyền thấp để tăng tốc. Khi puli sơ cấp khép lại, dây đai nâng lên (đường kính lớn) — tỷ số cao để chạy hành trình. Puli thứ cấp làm ngược lại đồng thời để duy trì sức căng đai.\n\nÁp suất thủy lực, điều khiển bởi TCU, điều chỉnh vị trí puli liên tục dựa trên đầu vào bướm ga và tốc độ xe. Kết quả là tăng tốc mượt mà không có cảm giác sang số, tiết kiệm nhiên liệu hơn và lái êm hơn — dù một số tài xế thấy cảm giác RPM không đổi kém thú vị hơn hộp số truyền thống.`,
+  questions:[
+    {q:'What is the key difference between a CVT and a conventional automatic?',opts:['CVT uses planetary gears','CVT has no fixed gear steps — infinite ratio range','CVT requires a manual clutch','CVT only works in front-wheel drive'],ans:1},
+    {q:'When the primary pulley opens wider, what happens?',opts:['Belt rides higher — higher gear ratio','Belt rides lower — lower gear ratio for acceleration','Belt tension is released','TCU disengages'],ans:1},
+    {q:'What adjusts pulley positions in a CVT?',opts:['Mechanical cables','Electric servos','Hydraulic pressure controlled by TCU','Driver input only'],ans:2}
+  ]
+},
+{
+  id:18,cat:'Làm mát',level:'B',
+  title:'Engine Cooling System — How It Maintains Temperature',
+  en:`Internal combustion engines generate enormous heat — roughly 30% of fuel energy becomes useful work, while the rest must be removed as heat. The <span class="hl" data-vi="hệ thống làm mát">cooling system</span> prevents overheating and maintains the optimal operating temperature of 85–95°C.\n\n<span class="hl" data-vi="nước làm mát">Coolant</span> (a mixture of water and antifreeze) circulates through <span class="hl" data-vi="áo nước trong thân máy">water jackets</span> cast into the engine block and cylinder head, absorbing heat. The hot coolant then flows to the <span class="hl" data-vi="két nước">radiator</span>, where it passes through thin tubes. Air flowing through the radiator fins (assisted by the <span class="hl" data-vi="quạt làm mát">cooling fan</span>) dissipates the heat to the atmosphere.\n\nThe <span class="hl" data-vi="van hằng nhiệt">thermostat</span> is a critical control valve. When the engine is cold, it remains closed, circulating coolant only within the engine to help it reach operating temperature quickly. Once temperature reaches the set point (usually 82–88°C), the thermostat opens and routes coolant through the radiator.\n\nThe <span class="hl" data-vi="bơm nước">water pump</span> — typically driven by the timing belt or a dedicated belt — maintains constant coolant circulation. The <span class="hl" data-vi="nắp áp suất két nước">radiator pressure cap</span> raises the boiling point of the coolant by pressurizing the system to about 1.0–1.3 bar, preventing boil-over at high temperatures.`,
+  vi:`Động cơ đốt trong tạo ra nhiệt lượng khổng lồ — khoảng 30% năng lượng nhiên liệu trở thành công có ích, phần còn lại phải được loại bỏ dưới dạng nhiệt. Hệ thống làm mát ngăn quá nhiệt và duy trì nhiệt độ hoạt động tối ưu 85–95°C.\n\nNước làm mát (hỗn hợp nước và dung dịch chống đóng băng) lưu thông qua các áo nước đúc trong thân máy và nắp máy, hấp thụ nhiệt. Nước làm mát nóng sau đó chảy đến két nước, qua các ống mỏng. Không khí qua cánh tản nhiệt (hỗ trợ bởi quạt làm mát) tản nhiệt ra khí quyển.\n\nVan hằng nhiệt là van điều khiển quan trọng. Khi động cơ lạnh, nó đóng lại, chỉ lưu thông nước làm mát trong động cơ để nhanh đạt nhiệt độ hoạt động. Khi nhiệt độ đạt ngưỡng đặt (thường 82–88°C), van mở và đưa nước làm mát qua két.\n\nBơm nước — thường dẫn động bởi dây curoa cam hoặc đai riêng — duy trì lưu thông nước làm mát liên tục. Nắp áp suất két nước tăng điểm sôi của nước làm mát bằng cách tạo áp trong hệ thống lên khoảng 1,0–1,3 bar, ngăn sôi trào ở nhiệt độ cao.`,
+  questions:[
+    {q:'What percentage of fuel energy becomes useful work in an internal combustion engine?',opts:['About 10%','About 30%','About 60%','About 80%'],ans:1},
+    {q:'What is the function of the thermostat when the engine is cold?',opts:['Opens fully to cool engine fast','Remains closed to help engine reach operating temperature','Stops the water pump','Opens the radiator cap'],ans:1},
+    {q:'How does the radiator pressure cap help the cooling system?',opts:['It filters coolant','It powers the water pump','It raises the boiling point by pressurizing the system','It opens when the thermostat closes'],ans:2}
+  ]
+},
+{
+  id:19,cat:'Cảm biến',level:'I',
+  title:'Key Engine Sensors & Their Role in Engine Management',
+  en:`Modern engine management systems rely on a network of sensors to optimize performance, fuel economy, and emissions. Understanding what each sensor does helps diagnose faults accurately.\n\nThe <span class="hl" data-vi="cảm biến lưu lượng khí nạp (MAF)">Mass Air Flow (MAF) sensor</span> measures the actual mass of air entering the engine. This data is fundamental — the ECU uses it to calculate the correct amount of fuel to inject for the target air-fuel ratio.\n\nThe <span class="hl" data-vi="cảm biến oxy (lambda)">oxygen (lambda) sensor</span>, located in the exhaust, measures residual oxygen in the exhaust gases. This tells the ECU whether combustion was rich (too much fuel) or lean (too little fuel), and it continuously adjusts fuel injection to maintain the ideal 14.7:1 ratio in a process called <span class="hl" data-vi="điều khiển vòng kín">closed-loop control</span>.\n\nThe <span class="hl" data-vi="cảm biến vị trí trục khuỷu (CKP)">crankshaft position sensor (CKP)</span> generates a signal every time a tooth on the reluctor wheel passes by, allowing the ECU to calculate precise engine RPM and piston position. This is critical for <span class="hl" data-vi="thời điểm đánh lửa">ignition timing</span> and injection timing.\n\nThe <span class="hl" data-vi="cảm biến kích nổ">knock sensor</span> detects abnormal combustion (engine knock or ping) and signals the ECU to retard ignition timing to prevent engine damage.\n\nTogether, these sensors allow the ECU to make thousands of calculations per second, adapting to every change in driving conditions in real time.`,
+  vi:`Hệ thống quản lý động cơ hiện đại dựa trên mạng lưới cảm biến để tối ưu hóa hiệu suất, tiết kiệm nhiên liệu và khí thải. Hiểu từng cảm biến giúp chẩn đoán lỗi chính xác.\n\nCảm biến MAF đo khối lượng thực tế của không khí vào động cơ. Dữ liệu này là nền tảng — ECU dùng nó để tính lượng nhiên liệu cần phun cho tỷ lệ hòa khí mục tiêu.\n\nCảm biến oxy (lambda), đặt trong đường xả, đo oxy còn lại trong khí thải. Điều này cho ECU biết quá trình đốt cháy có giàu (quá nhiều nhiên liệu) hay nghèo (quá ít nhiên liệu), và liên tục điều chỉnh phun nhiên liệu để duy trì tỷ lệ lý tưởng 14,7:1 trong quá trình điều khiển vòng kín.\n\nCảm biến vị trí trục khuỷu (CKP) tạo tín hiệu mỗi khi răng trên vành cảm biến đi qua, cho phép ECU tính vòng tua và vị trí piston chính xác. Điều này quan trọng cho thời điểm đánh lửa và phun nhiên liệu.\n\nCảm biến kích nổ phát hiện đốt cháy bất thường (tiếng gõ máy) và báo ECU lùi thời điểm đánh lửa để ngăn hư hỏng động cơ.\n\nCùng nhau, các cảm biến này cho phép ECU thực hiện hàng nghìn tính toán mỗi giây, thích ứng với mọi thay đổi trong điều kiện lái xe theo thời gian thực.`,
+  questions:[
+    {q:'What does the MAF sensor measure?',opts:['Exhaust gas temperature','Mass of air entering the engine','Fuel pressure','Coolant temperature'],ans:1},
+    {q:'What is "closed-loop control" in engine management?',opts:['When the throttle is fully closed','ECU continuously adjusting fuel injection based on oxygen sensor feedback','When the EGR valve closes','ABS pulsing at low speed'],ans:1},
+    {q:'What does the knock sensor trigger the ECU to do when knock is detected?',opts:['Increase fuel injection','Retard ignition timing','Advance ignition timing','Shut off the turbocharger'],ans:1}
+  ]
+},
+{
+  id:20,cat:'Xe điện',level:'I',
+  title:'EV Battery Pack — Cell Chemistry & Configuration',
+  en:`The performance and range of an <span class="hl" data-vi="xe điện">electric vehicle</span> depend heavily on the design of its <span class="hl" data-vi="cụm pin">battery pack</span>. Understanding cell chemistry and configuration is fundamental to EV engineering.\n\nMost EV batteries use <span class="hl" data-vi="pin lithium-ion">lithium-ion (Li-ion)</span> chemistry. Common variants include NMC (Nickel Manganese Cobalt) — known for high energy density — and LFP (Lithium Iron Phosphate) — known for superior cycle life and thermal stability but lower energy density. Tesla, for example, uses NMC for long-range models and LFP for standard-range vehicles.\n\nIndividual cells output about <span class="hl" data-vi="điện áp danh định cell">3.2–3.7V nominal</span> and are grouped into <span class="hl" data-vi="cấu hình nối tiếp">series (S)</span> and <span class="hl" data-vi="cấu hình song song">parallel (P)</span> configurations. Series connections increase voltage (e.g., 96S × 3.7V = ~355V), while parallel connections increase capacity (Ah). A typical EV pack might use a 96S8P configuration.\n\nCells are assembled into <span class="hl" data-vi="module pin">modules</span>, and multiple modules form the complete pack. The pack is enclosed in a structural aluminum or steel housing with <span class="hl" data-vi="hệ thống quản lý nhiệt pin">thermal management</span> — either liquid cooling channels or air cooling — to maintain cells within their optimal 15–35°C operating range.\n\nThe <span class="hl" data-vi="hệ thống quản lý pin (BMS)">BMS</span> monitors every module, ensuring balanced charging and protecting against <span class="hl" data-vi="hiệu ứng nhiệt lan truyền">thermal runaway</span> — a chain reaction where one failing cell overheats its neighbors.`,
+  vi:`Hiệu suất và phạm vi của xe điện phụ thuộc nhiều vào thiết kế cụm pin. Hiểu hóa học cell và cấu hình là nền tảng trong kỹ thuật xe điện.\n\nHầu hết pin xe điện dùng hóa học lithium-ion (Li-ion). Các biến thể phổ biến gồm NMC (Nickel Mangan Cobalt) — nổi tiếng về mật độ năng lượng cao — và LFP (Lithium Sắt Phosphate) — nổi tiếng về tuổi thọ chu kỳ cao và ổn định nhiệt nhưng mật độ năng lượng thấp hơn. Tesla dùng NMC cho model tầm xa và LFP cho xe tầm xa tiêu chuẩn.\n\nCell riêng lẻ xuất khoảng 3,2–3,7V danh định và được nhóm theo cấu hình nối tiếp (S) và song song (P). Nối tiếp tăng điện áp (ví dụ: 96S × 3,7V = ~355V), song song tăng dung lượng (Ah). Một cụm pin xe điện điển hình có thể dùng cấu hình 96S8P.\n\nCác cell được lắp ráp thành module, và nhiều module tạo thành cụm pin hoàn chỉnh. Cụm pin được đặt trong vỏ nhôm hoặc thép cấu trúc với hệ thống quản lý nhiệt — kênh làm mát bằng chất lỏng hoặc làm mát bằng không khí — để duy trì cell trong phạm vi 15–35°C tối ưu.\n\nBMS theo dõi mọi module, đảm bảo sạc cân bằng và bảo vệ khỏi hiện tượng nhiệt lan truyền — phản ứng dây chuyền khi một cell hỏng làm quá nhiệt các cell lân cận.`,
+  questions:[
+    {q:'What is the key advantage of LFP chemistry over NMC?',opts:['Higher energy density','Lower cost and weight','Superior cycle life and thermal stability','Faster charging speed'],ans:2},
+    {q:'In a 96S8P configuration, what does the "96S" achieve?',opts:['Increases capacity (Ah)','Increases voltage (96 cells in series)','Reduces weight','Improves thermal management'],ans:1},
+    {q:'What is "thermal runaway" in a battery pack?',opts:['Normal heating during fast charging','A chain reaction where one failing cell overheats neighbors','Battery cooling below 0°C','BMS shutting down charging'],ans:1}
+  ]
+}
+];
+
+let readCat='Tất cả',readQuizState={};
+
+function renderRead(){
+  const cats=['Tất cả','Động cơ','Hệ thống lái','Hệ thống treo','Phanh','Hộp số','Khí thải','Xe điện'];
+  const filtered=ARTICLES.filter(a=>readCat==='Tất cả'||a.cat===readCat);
+  document.getElementById('readList').innerHTML=`
+    <div class="read-filter">
+      ${cats.map(c=>`<button class="read-cat${readCat===c?' active':''}" onclick="setReadCat('${c}')">${c}</button>`).join('')}
+    </div>
+    ${filtered.map(a=>renderArticle(a)).join('')}
+    <div id="tooltip" class="tooltip"></div>`;
+  // tooltip
+  document.querySelectorAll('.hl').forEach(el=>{
+    el.addEventListener('mouseenter',e=>{
+      const tt=document.getElementById('tooltip');
+      tt.textContent=el.dataset.vi;
+      tt.style.display='block';
+      tt.style.left=(e.clientX+10)+'px';
+      tt.style.top=(e.clientY-30)+'px';
+    });
+    el.addEventListener('mousemove',e=>{
+      const tt=document.getElementById('tooltip');
+      tt.style.left=(e.clientX+10)+'px';
+      tt.style.top=(e.clientY-30)+'px';
+    });
+    el.addEventListener('mouseleave',()=>{document.getElementById('tooltip').style.display='none';});
+  });
+}
+
+function renderArticle(a){
+  const lvlCls=a.level==='B'?'level-b':'level-i';
+  const lvlTxt=a.level==='B'?'Cơ bản':'Trung cấp';
+  const qs=a.questions.map((q,qi)=>`
+    <div class="aq-item">
+      <div class="aq-q">${qi+1}. ${q.q}</div>
+      <div class="aq-opts">
+        ${q.opts.map((o,oi)=>`<button class="aq-opt" onclick="checkAQ(${a.id},${qi},${oi})" id="aq-${a.id}-${qi}-${oi}">${o}</button>`).join('')}
+      </div>
+    </div>`).join('');
+  return`<div class="article">
+    <div class="article-header">
+      <div class="article-title">${a.title}</div>
+      <span class="article-tag">${a.cat}</span>
+      <span class="article-level ${lvlCls}">${lvlTxt}</span>
+    </div>
+    <div class="article-en">${a.en.replace(/\n/g,'<br><br>')}</div>
+    <div class="article-actions">
+      <button class="art-btn" onclick="toggleTrans(${a.id},this)">🇻🇳 Xem bản dịch</button>
+      <button class="art-btn" onclick="toggleQuiz(${a.id},this)">🎯 Câu hỏi đọc hiểu</button>
+    </div>
+    <div class="article-vi" id="trans-${a.id}">${a.vi.replace(/\n/g,'<br><br>')}</div>
+    <div class="art-quiz" id="quiz-${a.id}">
+      <div class="art-quiz-title">📝 Trả lời câu hỏi sau:</div>
+      ${qs}
+    </div>
+  </div>`;
+}
+
+function setReadCat(c){readCat=c;renderRead();}
+
+function toggleTrans(id,btn){
+  const el=document.getElementById('trans-'+id);
+  const show=!el.classList.contains('show');
+  el.classList.toggle('show',show);
+  btn.classList.toggle('active',show);
+  btn.textContent=show?'🇻🇳 Ẩn bản dịch':'🇻🇳 Xem bản dịch';
+}
+
+function toggleQuiz(id,btn){
+  const el=document.getElementById('quiz-'+id);
+  const show=!el.classList.contains('show');
+  el.classList.toggle('show',show);
+  btn.classList.toggle('active',show);
+  btn.textContent=show?'🎯 Ẩn câu hỏi':'🎯 Câu hỏi đọc hiểu';
+}
+
+function checkAQ(artId,qi,chosen){
+  const art=ARTICLES.find(a=>a.id===artId);
+  const correct=art.questions[qi].ans;
+  const opts=document.querySelectorAll(`[id^="aq-${artId}-${qi}-"]`);
+  opts.forEach(b=>b.disabled=true);
+  document.getElementById(`aq-${artId}-${qi}-${correct}`).classList.add('correct');
+  if(chosen!==correct) document.getElementById(`aq-${artId}-${qi}-${chosen}`).classList.add('wrong');
+}
 </script>
 </body>
 </html>
