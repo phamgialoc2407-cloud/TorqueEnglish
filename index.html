@@ -180,6 +180,7 @@ button,input,select{font-family:'Sora',sans-serif}
       <div class="hstat">Đã lưu <b id="hStar">0</b></div>
       <div class="prog-wrap"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
       <div class="hstat" id="progPct">0%</div>
+      <button onclick="resetProgress()" style="padding:4px 10px;font-size:11px;border:1px solid var(--border);border-radius:6px;cursor:pointer;background:transparent;color:var(--dim);font-family:'Sora',sans-serif" title="Xóa tiến độ">↺</button>
     </div>
   </div>
 </header>
@@ -402,7 +403,27 @@ const CATS=['Tất cả','Động cơ','Hệ thống điện','Hệ thống lái
   'Nhiên liệu','Phanh','Hộp số','Khí thải','Cảm biến','An toàn','Điều hòa','Xe điện','Nội thất'];
 
 const words=DB.map(r=>({en:r[0],vi:r[1],cat:r[2]}));
-let mode='dict',cat='Tất cả',learned=new Set(),starred=new Set(),page=0;
+let mode='dict',cat='Tất cả',page=0;
+
+// Load từ localStorage khi mở web
+function loadStorage(){
+  try{
+    const l=localStorage.getItem('tl_learned');
+    const s=localStorage.getItem('tl_starred');
+    return{
+      learned: l ? new Set(JSON.parse(l)) : new Set(),
+      starred: s ? new Set(JSON.parse(s)) : new Set()
+    };
+  }catch(e){return{learned:new Set(),starred:new Set()};}
+}
+function saveStorage(){
+  try{
+    localStorage.setItem('tl_learned', JSON.stringify([...learned]));
+    localStorage.setItem('tl_starred', JSON.stringify([...starred]));
+  }catch(e){}
+}
+const {learned:_l, starred:_s} = loadStorage();
+let learned=_l, starred=_s;
 const PER=24;
 
 // FLASHCARD
@@ -428,7 +449,7 @@ function showFlash(){
 }
 function revealFlash(){document.getElementById('flashCard').classList.add('revealed');}
 function nextFlash(know){
-  if(know){flashKnow++;learned.add(flashDeck[flashIdx%flashDeck.length].en);}
+  if(know){flashKnow++;learned.add(flashDeck[flashIdx%flashDeck.length].en);saveStorage();}
   flashIdx++;
   if(flashIdx>=flashDeck.length){
     document.getElementById('flashCard').innerHTML=`<div class="flash-front"><div class="flash-word" style="font-size:18px">🎉 Xong rồi!</div><div class="flash-cat" style="margin-top:12px">Thuộc ${flashKnow}/${flashDeck.length} từ</div></div>`;
@@ -462,7 +483,7 @@ function renderQuiz(){
 function checkQ(btn,chosen,correct){
   if(qAnswered)return;qAnswered=true;qTotal++;
   document.querySelectorAll('.qchoice').forEach(b=>b.disabled=true);
-  if(chosen===correct){btn.classList.add('correct');document.getElementById('qFb').textContent='✓ Chính xác!';learned.add(correct);qRight++;}
+  if(chosen===correct){btn.classList.add('correct');document.getElementById('qFb').textContent='✓ Chính xác!';learned.add(correct);saveStorage();qRight++;}
   else{btn.classList.add('wrong');document.querySelectorAll('.qchoice').forEach(b=>{if(b.textContent===qWord.vi)b.classList.add('correct');});document.getElementById('qFb').innerHTML=`✗ Sai. Đáp án: <b style="color:var(--green)">${qWord.vi}</b>`;}
   document.getElementById('qNext').style.display='block';
   document.getElementById('qScoreDisp').textContent=`${qRight} đúng / ${qTotal} câu`;
@@ -506,8 +527,8 @@ function render(){
   document.getElementById('pager').innerHTML=pgr;
 }
 function goP(p){page=p;render();}
-function toggleStar(en){if(starred.has(en))starred.delete(en);else starred.add(en);render();updateStats();}
-function toggleLearn(en){if(learned.has(en))learned.delete(en);else learned.add(en);render();updateStats();}
+function toggleStar(en){if(starred.has(en))starred.delete(en);else starred.add(en);saveStorage();render();updateStats();}
+function toggleLearn(en){if(learned.has(en))learned.delete(en);else learned.add(en);saveStorage();render();updateStats();}
 function renderCats(){
   document.getElementById('catChips').innerHTML=CATS.map(c=>`<button class="cat${cat===c?' active':''}" onclick="setCat('${c}')">${c}</button>`).join('');
 }
@@ -527,6 +548,20 @@ function updateStats(){
   document.getElementById('hStar').textContent=s;
   document.getElementById('progFill').style.width=pct+'%';
   document.getElementById('progPct').textContent=pct+'%';
+}
+function resetProgress(){
+  if(!confirm('Xóa toàn bộ tiến độ học và từ đã lưu?'))return;
+  learned=new Set();starred=new Set();
+  localStorage.removeItem('tl_learned');
+  localStorage.removeItem('tl_starred');
+  render();updateStats();
+  showToast('Đã xóa tiến độ!');
+}
+function showToast(msg){
+  let t=document.getElementById('toast');
+  if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#21262f;border:1px solid #353d4a;color:#e8ecf0;padding:10px 20px;border-radius:10px;font-size:13px;z-index:9999;transition:opacity .4s;';document.body.appendChild(t);}
+  t.textContent=msg;t.style.opacity='1';
+  clearTimeout(t._to);t._to=setTimeout(()=>{t.style.opacity='0';},2000);
 }
 renderCats();render();updateStats();
 
